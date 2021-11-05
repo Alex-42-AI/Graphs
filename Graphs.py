@@ -380,7 +380,7 @@ class UndirectedGraph:
                 return False
         return temp_degrees[start] % 2 + temp_degrees[end] % 2 in [0, 2]
     def Hamilton_tour_exists(self, nodes=None, links=None, can_continue_from=None, can_end_in=None, end_links=None):
-        if nodes is None:
+                if nodes is None:
             nodes = self.__nodes
         if links is None:
             links = self.__links
@@ -395,15 +395,6 @@ class UndirectedGraph:
         if any(curr_degrees[n] <= 1 for n in nodes) or not self.connected(nodes, links):
             return False
         if can_end_in is not None:
-            can_continue = False
-            for n in nodes:
-                if n in can_end_in:
-                    can_continue = True
-                    break
-                if can_continue:
-                    break
-            if not can_continue:
-                return False
             can_continue = False
             for n in [n for n in nodes if n not in can_continue_from + can_end_in]:
                 for l in end_links:
@@ -431,6 +422,8 @@ class UndirectedGraph:
             if can_end_in is None:
                 can_end_in = [m for m in nodes if Link(m, n) in links]
                 end_links = [Link(n, m) for m in can_end_in]
+                if not can_end_in:
+                    continue
             if self.Hamilton_tour_exists([_n for _n in nodes if _n != n], [l for l in links if n not in l], [_n for _n in nodes if _n in self.__neighboring[n]], can_end_in, end_links):
                 return True
         return False
@@ -979,7 +972,7 @@ class DirectedGraph:
                 return False
         return temp_degrees[start][0] % 2 + temp_degrees[end][1] % 2 in [0, 2]
     def Hamilton_tour_exists(self, nodes=None, links=None, can_continue_from=None, can_end_in=None, end_links=None):
-        if nodes is None:
+                if nodes is None:
             nodes = self.__nodes
         if links is None:
             links = self.__links
@@ -993,8 +986,6 @@ class DirectedGraph:
         if len(links) == len(nodes) ** 2 - len(nodes) or all(sum(curr_degrees[n]) >= len(can_continue_from) for n in can_continue_from):
             return True
         if can_end_in is not None:
-            if not can_end_in:
-                return False
             can_continue = False
             for n in nodes:
                 if n in [l[1] for l in end_links]:
@@ -1008,6 +999,8 @@ class DirectedGraph:
             if can_end_in is None:
                 can_end_in = [m for m in nodes if (m, n) in links]
                 end_links = [(m, n) for m in can_end_in]
+                if not can_end_in:
+                    continue
             if self.Hamilton_tour_exists([_n for _n in nodes if _n != n], [l for l in links if n not in l], [_n for _n in nodes if (n, _n) in links], can_end_in, end_links):
                 return True
         return False
