@@ -379,7 +379,7 @@ class UndirectedGraph:
             if temp_degrees[node] % 2 and node not in [start, end]:
                 return False
         return temp_degrees[start] % 2 + temp_degrees[end] % 2 in [0, 2]
-    def Hamilton_tour_exists(self, nodes=None, links=None, can_continue_from=None):
+    def Hamilton_tour_exists(self, nodes=None, links=None, can_continue_from=None, can_end_in=None, end_links=None):
         if nodes is None:
             nodes = self.__nodes
         if links is None:
@@ -392,15 +392,35 @@ class UndirectedGraph:
         for n in nodes:
             for m in self.__neighboring[n]:
                 curr_degrees[n] += Link(n, m) in links
-        if any(curr_degrees[n] <= 1 for n in nodes) or len(nodes) == 2 or not self.connected(nodes, links):
+        if any(curr_degrees[n] <= 1 for n in nodes) or not self.connected(nodes, links):
             return False
+        if can_end_in is not None:
+            can_continue = False
+            for n in nodes:
+                if n in can_end_in:
+                    can_continue = True
+                    break
+                if can_continue:
+                    break
+            if not can_continue:
+                return False
+            can_continue = False
+            for n in [n for n in nodes if n not in can_continue_from + can_end_in]:
+                for l in end_links:
+                    if Link(n, l[0]) in links or Link(n, l[1]) in links:
+                        can_continue = True
+                        break
+                if can_continue:
+                    break
+            if not can_continue:
+                return False
         if len(nodes) > 2:
-            if all(self.get_degrees(n) >= len(nodes) / 2 for n in nodes) or len(links) > (len(nodes) - 1) * (len(nodes) - 2) / 2 + 1:
+            if all(curr_degrees[n] >= len(nodes) / 2 for n in nodes) or len(links) > (len(nodes) - 1) * (len(nodes) - 2) / 2 + 1:
                 return True
             res = True
             for n1 in nodes:
                 for n2 in [n for n in nodes if n != n1 and Link(n1, n) not in links]:
-                    if self.__degrees[n1] + self.__degrees[n2] < len(nodes):
+                    if curr_degrees[n1] + curr_degrees[n2] < len(nodes):
                         res = False
                         break
                 if not res:
@@ -408,7 +428,10 @@ class UndirectedGraph:
             if res:
                 return True
         for n in can_continue_from:
-            if self.Hamilton_tour_exists([_n for _n in nodes if _n != n], [l for l in links if n not in l], [_n for _n in nodes if _n in self.__neighboring[n]]):
+            if can_end_in is None:
+                can_end_in = [m for m in nodes if Link(m, n) in links]
+                end_links = [Link(n, m) for m in can_end_in]
+            if self.Hamilton_tour_exists([_n for _n in nodes if _n != n], [l for l in links if n not in l], [_n for _n in nodes if _n in self.__neighboring[n]], can_end_in, end_links):
                 return True
         return False
     def Hamilton_walk_exists(self, node1: Node, node2=None, nodes=None, links=None, can_continue_from=None):
@@ -427,7 +450,9 @@ class UndirectedGraph:
                 if self.Hamilton_walk_exists(node1, n2):
                     return True
             return False
-        if self.loop_with_length(len(nodes), nodes, links + [Link(node1, node2)] * (Link(node1, node2) not in links)) or len(nodes) == 1 and node1 == node2 or len(nodes) == 2 and Link(node1, node2) in links:
+        if len(nodes) == 1 and node1 == node2 or len(nodes) == 2 and Link(node1, node2) in links:
+            return True
+        if self.loop_with_length(len(nodes), nodes, links + [Link(node1, node2)] * (Link(node1, node2) not in links)):
             return True
         for n in can_continue_from:
             if self.Hamilton_walk_exists(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]]):
@@ -953,19 +978,37 @@ class DirectedGraph:
             if temp_degrees[node][0] % 2 and node != start or temp_degrees[node][1] % 2 and node != end:
                 return False
         return temp_degrees[start][0] % 2 + temp_degrees[end][1] % 2 in [0, 2]
-    def Hamilton_tour_exists(self, nodes=None, links=None, can_continue_from=None):
+    def Hamilton_tour_exists(self, nodes=None, links=None, can_continue_from=None, can_end_in=None, end_links=None):
         if nodes is None:
             nodes = self.__nodes
         if links is None:
             links = self.__links
         if can_continue_from is None:
             can_continue_from = nodes
-        if len(links) == len(nodes) ** 2 - len(nodes) or all(sum(self.__degrees[n]) >= len(can_continue_from) for n in can_continue_from):
+        curr_degrees = Dict(*[(n, [0, 0]) for n in nodes])
+        for n in nodes:
+            for l in links:
+                curr_degrees[n][0] += n == l[0]
+                curr_degrees[n][1] += n == l[1]
+        if len(links) == len(nodes) ** 2 - len(nodes) or all(sum(curr_degrees[n]) >= len(can_continue_from) for n in can_continue_from):
             return True
+        if can_end_in is not None:
+            if not can_end_in:
+                return False
+            can_continue = False
+            for n in nodes:
+                if n in [l[1] for l in end_links]:
+                    can_continue = True
+                    break
+            if not can_continue:
+                return False
         if self.strongly_connected(nodes, links):
             return True
         for n in can_continue_from:
-            if self.Hamilton_tour_exists([_n for _n in nodes if _n != n], [l for l in links if n not in l], [_n for _n in nodes if (n, _n) in self.__links]):
+            if can_end_in is None:
+                can_end_in = [m for m in nodes if (m, n) in links]
+                end_links = [(m, n) for m in can_end_in]
+            if self.Hamilton_tour_exists([_n for _n in nodes if _n != n], [l for l in links if n not in l], [_n for _n in nodes if (n, _n) in links], can_end_in, end_links):
                 return True
         return False
     def Hamilton_walk_exists(self, node1: Node, node2=None, nodes=None, links=None, can_continue_from=None):
