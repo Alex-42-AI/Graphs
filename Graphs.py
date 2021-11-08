@@ -1310,6 +1310,10 @@ class Tree:
         return self.__hierarchy
     def get_descendants(self, node: Node):
         return self.__hierarchy[node]
+    def copy(self):
+        res = Tree(self.get_root())
+        res.__hierarchy, res.__nodes, res.__links, res.__leaves = self.get_hierarchy().copy(), self.get_nodes().copy(), self.get_links().copy(), self.get_leaves().copy()
+        return res
     def add_nodes_to(self, old: Node, node: Node, *rest: Node):
         if old not in self.__nodes:
             raise Exception('Node not found!')
