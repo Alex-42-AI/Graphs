@@ -100,13 +100,10 @@ class Link:
         return str(self)
 class UndirectedGraph:
     def __init__(self, start: Node, *rest: Node):
-        for i, n in enumerate(rest):
-            if start == n:
-                raise ValueError('Can\'t have a node twice in a graph.')
-            for m in range(i + 1, len(rest)):
-                if n == rest[m]:
-                    raise ValueError('Can\'t have a node twice in a graph.')
-        self.__nodes = [start, *rest]
+        self.__nodes = []
+        for n in tuple([start]) + rest:
+            if n not in self.__nodes:
+                self.__nodes.append(n)
         self.__links, self.__neighboring, self.__degrees, self.__degrees_sum = [], Dict(*[(n, []) for n in self.__nodes]), Dict(*[(n, 0) for n in self.__nodes]), 0
     def get_nodes(self):
         return self.__nodes
@@ -719,14 +716,11 @@ class WeightedUndirectedGraph(UndirectedGraph):
         return '({' + ', '.join(str(n) for n in self.get_nodes()) + '}, ' + str(self.__weights) + ')'
 class DirectedGraph:
     def __init__(self, start: Node, *rest: Node):
-        for n in range(len(rest)):
-            if start == rest[n]:
-                raise ValueError('Can\'t have a node twice in a graph.')
-            for m in range(n + 1, len(rest)):
-                if rest[n] == rest[m]:
-                    raise ValueError('Can\'t have a node twice in a graph.')
-        self.__nodes, self.__links, self.__degrees_sum = [start, *rest], [], 0
-        self.__degrees = Dict(*[(n, [0, 0]) for n in self.__nodes])
+        self.__nodes = []
+        for n in tuple([start]) + rest:
+            if n not in self.__nodes:
+                self.__nodes.append(n)
+        self.__links, self.__degrees_sum, self.__degrees = [], 0, Dict(*[(n, [0, 0]) for n in self.__nodes])
     def get_nodes(self):
         return self.__nodes
     def get_links(self):
