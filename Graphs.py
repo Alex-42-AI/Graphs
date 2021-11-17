@@ -504,19 +504,21 @@ class UndirectedGraph:
             return []
         raise ValueError('Unrecognized nodes!')
     def __add__(self, other):
-        res = self.copy()
-        res.__nodes += [n for n in other.get_nodes() if n not in self.get_nodes()]
-        res.__links += [l for l in other.get_links() if l not in self.__links]
-        res.__degrees_sum = 2 * len(res.get_links())
-        for n in res.get_nodes():
-            if n not in res.get_neighboring().keys():
-                res.__neighboring[n] = []
-            for l in [l for l in res.get_links() if n in l]:
-                sec = l.other(n)
-                if sec not in res.get_neighboring(n):
-                    res.__neighboring[n].append(sec)
-        res.__degrees = Dict(*[(n, len(res.get_neighboring(n))) for n in res.get_nodes()])
-        return res
+        if isinstance(other, UndirectedGraph):
+            res = self.copy()
+            res.__nodes += [n for n in other.get_nodes() if n not in self.__nodes]
+            res.__links += [l for l in other.get_links() if l not in self.__links]
+            res.__degrees_sum = 2 * len(res.get_links())
+            for n in res.get_nodes():
+                if n not in res.get_neighboring().keys():
+                    res.__neighboring[n] = []
+                for l in [l for l in res.get_links() if n in l]:
+                    sec = l.other(n)
+                    if sec not in res.get_neighboring(n):
+                        res.__neighboring[n].append(sec)
+            res.__degrees = Dict(*[(n, len(res.get_neighboring(n))) for n in res.get_nodes()])
+            return res
+        raise TypeError(f'Can\'t add class UndirectedGraph to class {type(other)}!')
     def __eq__(self, other):
         for n in self.__nodes:
             if n not in other.get_nodes():
@@ -687,26 +689,28 @@ class WeightedUndirectedGraph(UndirectedGraph):
             return f'No path between {node1} and {node2}!'
         raise ValueError('Unrecognized node(s)!')
     def __add__(self, other):
-        res = self.copy()
-        res._UndirectedGraph__nodes += [n for n in other.get_nodes() if n not in self.get_nodes()]
-        res._UndirectedGraph__links += [l for l in other.get_links() if l not in self.get_links()]
-        res._UndirectedGraph__degrees_sum = 2 * len(res.get_links())
-        for n in res.get_nodes():
-            if n not in res.get_neighboring().keys():
-                res._UndirectedGraph__neighboring[n] = []
-            for l in [l for l in res.get_links() if n in l]:
-                sec = l.other(n)
-                if sec not in res.get_neighboring(n):
-                    res._UndirectedGraph__neighboring[n].append(sec)
-        res._UndirectedGraph__degrees = Dict(*[(n, len(res.get_neighboring(n))) for n in res.get_nodes()])
-        for l in other.get_links():
-            if l not in res.__weights.keys():
-                res.__weights[l] = other.get_weights(l)
-            else:
-                res.__weights[l] += other.get_weights(l)
-        for l in other.get_links():
-            res.__total_weight += other.get_weights(l)
-        return res
+        if isinstance(other, WeightedUndirectedGraph):
+            res = self.copy()
+            res._UndirectedGraph__nodes += [n for n in other.get_nodes() if n not in self.get_nodes()]
+            res._UndirectedGraph__links += [l for l in other.get_links() if l not in self.get_links()]
+            res._UndirectedGraph__degrees_sum = 2 * len(res.get_links())
+            for n in res.get_nodes():
+                if n not in res.get_neighboring().keys():
+                    res._UndirectedGraph__neighboring[n] = []
+                for l in [l for l in res.get_links() if n in l]:
+                    sec = l.other(n)
+                    if sec not in res.get_neighboring(n):
+                        res._UndirectedGraph__neighboring[n].append(sec)
+            res._UndirectedGraph__degrees = Dict(*[(n, len(res.get_neighboring(n))) for n in res.get_nodes()])
+            for l in other.get_links():
+                if l not in res.__weights.keys():
+                    res.__weights[l] = other.get_weights(l)
+                else:
+                    res.__weights[l] += other.get_weights(l)
+            for l in other.get_links():
+                res.__total_weight += other.get_weights(l)
+            return res
+        raise TypeError(f'Can\'t add class WeightedUndirectedGraph to class {type(other)}!')
     def __eq__(self, other):
         for n in self.get_nodes():
             if n not in other.get_nodes():
@@ -1079,15 +1083,17 @@ class DirectedGraph:
             return []
         raise ValueError('Unrecognized nodes!')
     def __add__(self, other):
-        res = self.copy()
-        res.__nodes += [n for n in other.get_nodes() if n not in self.__nodes]
-        res.__links += [l for l in other.get_links() if l not in self.__links]
-        for n in res.get_nodes():
-            res.__degrees[n] = [0, 0]
-            for l in [l for l in res.get_links() if n in l]:
-                res.__degrees[n][l.index(n)] += 1
-        res.__degrees_sum = 2 * len(res.get_links())
-        return res
+        if isinstance(other, DirectedGraph):
+            res = self.copy()
+            res.__nodes += [n for n in other.get_nodes() if n not in self.__nodes]
+            res.__links += [l for l in other.get_links() if l not in self.__links]
+            for n in res.get_nodes():
+                res.__degrees[n] = [0, 0]
+                for l in [l for l in res.get_links() if n in l]:
+                    res.__degrees[n][l.index(n)] += 1
+            res.__degrees_sum = 2 * len(res.get_links())
+            return res
+        raise TypeError(f'Can\'t add class DirectedGraph to class {type(other)}!')
     def __eq__(self, other):
         for n in self.__nodes:
             if n not in other.get_nodes():
@@ -1259,22 +1265,24 @@ class WeightedDirectedGraph(DirectedGraph):
             return f'No path between {node1} and {node2}!'
         raise ValueError('Unrecognized node(s)!')
     def __add__(self, other):
-        res = self.copy()
-        res._DirectedGraph__nodes += [n for n in other.get_nodes() if n not in self.get_nodes()]
-        res._DirectedGraph__links += [l for l in other.get_links() if l not in self.get_links()]
-        for n in res.get_nodes():
-            res._DirectedGraph__degrees[n] = [0, 0]
-            for l in [l for l in res.get_links() if n in l]:
-                res._DirectedGraph__degrees[n][l.index(n)] += 1
-        res._DirectedGraph__degrees_sum = 2 * len(res.get_links())
-        for l in other.get_links():
-            if l not in res.__weights.keys():
-                res.__weights[l] = other.get_weights(l)
-            else:
-                res.__weights[l] += other.get_weights(l)
-        for l in other.get_links():
-            res.__total_weight += other.get_weights(l)
-        return res
+        if isinstance(other, WeightedDirectedGraph):
+            res = self.copy()
+            res._DirectedGraph__nodes += [n for n in other.get_nodes() if n not in self.get_nodes()]
+            res._DirectedGraph__links += [l for l in other.get_links() if l not in self.get_links()]
+            for n in res.get_nodes():
+                res._DirectedGraph__degrees[n] = [0, 0]
+                for l in [l for l in res.get_links() if n in l]:
+                    res._DirectedGraph__degrees[n][l.index(n)] += 1
+            res._DirectedGraph__degrees_sum = 2 * len(res.get_links())
+            for l in other.get_links():
+                if l not in res.__weights.keys():
+                    res.__weights[l] = other.get_weights(l)
+                else:
+                    res.__weights[l] += other.get_weights(l)
+            for l in other.get_links():
+                res.__total_weight += other.get_weights(l)
+            return res
+        raise TypeError(f'Can\'t add class WeightedDirectedGraph to class {type(other)}!')
     def __eq__(self, other):
         for n in self.get_nodes():
             if n not in other.get_nodes():
