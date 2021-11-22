@@ -33,15 +33,15 @@ class Dict:
     def __len__(self):
         return len(self.__items)
     def __getitem__(self, item):
-        for k, v in self.__items:
-            if item == k:
-                return v
+        try:
+            return self.values()[self.keys().index(item)]
+        except ValueError:
+            pass
     def __setitem__(self, key, value):
-        for i in range(len(self.__items)):
-            if key == self.__items[i][0]:
-                self.__items[i] = (key, value)
-                return
-        self.__items.append((key, value))
+        try:
+            self.__items[self.keys().index(key)] = (key, value)
+        except ValueError:
+            self.__items.append((key, value))
     def __eq__(self, other):
         if isinstance(other, Dict):
             for i in self.items():
@@ -52,7 +52,7 @@ class Dict:
             for k, v in self.items():
                 if k not in other.keys() or other.get(k) != v:
                     return False
-            return len(self.items()) == len(other.items())
+            return len(self.__items) == len(other.items())
         return False
     def __str__(self):
         return '{' + ', '.join(f'{k}: {v}' for k, v in self.__items) + '}'
@@ -377,7 +377,7 @@ class UndirectedGraph:
                 return False
         return temp_degrees[start] % 2 + temp_degrees[end] % 2 in [0, 2]
     def Hamilton_tour_exists(self, nodes=None, links=None, can_continue_from=None, can_end_in=None, end_links=None):
-                if nodes is None:
+        if nodes is None:
             nodes = self.__nodes
         if links is None:
             links = self.__links
@@ -970,7 +970,7 @@ class DirectedGraph:
                 return False
         return temp_degrees[start][0] % 2 + temp_degrees[end][1] % 2 in [0, 2]
     def Hamilton_tour_exists(self, nodes=None, links=None, can_continue_from=None, can_end_in=None, end_links=None):
-                if nodes is None:
+        if nodes is None:
             nodes = self.__nodes
         if links is None:
             links = self.__links
