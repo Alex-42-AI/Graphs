@@ -1321,6 +1321,7 @@ class Tree:
             raise Exception('Node not found!')
         if old in self.__leaves:
             self.__leaves.remove(old)
+        self.__hierarchy[old] = []
         for n in [node] + [*rest]:
             if n not in self.get_nodes():
                 self.__nodes.append(n)
@@ -1361,6 +1362,17 @@ class Tree:
         raise ValueError('Node not in graph!')
     def depth(self):
         return max(self.node_depth(l) for l in self.__leaves)
+    def path_to(self, node: Node, curr_root=None):
+        if curr_root is None:
+            curr_root = self.__root
+        if curr_root == node:
+            return [node]
+        if curr_root in self.__leaves:
+            return
+        for n in self.get_descendants(curr_root):
+            res = self.path_to(node, n)
+            if res:
+                return [curr_root] + res
     def __eq__(self, other):
         for n in self.get_nodes():
             if n not in other.get_nodes():
