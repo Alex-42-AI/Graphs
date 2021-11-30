@@ -1321,7 +1321,8 @@ class Tree:
             raise Exception('Node not found!')
         if old in self.__leaves:
             self.__leaves.remove(old)
-        self.__hierarchy[old] = []
+        if self.__hierarchy[old] is None:
+            self.__hierarchy[old] = []
         for n in [node] + [*rest]:
             if n not in self.get_nodes():
                 self.__nodes.append(n)
