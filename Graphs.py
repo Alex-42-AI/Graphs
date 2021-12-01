@@ -85,7 +85,7 @@ class Link:
             return [self.__node1, self.__node2][node == self.__node1]
         raise Exception('Unrecognized node!')
     def __contains__(self, item):
-        return item in [self.__node1, self.__node2]
+        return item in (self.__node1, self.__node2)
     def __len__(self):
         return 1 + (self.__node1 != self.__node2)
     def __getitem__(self, i: int):
@@ -170,6 +170,13 @@ class UndirectedGraph:
                 self.__neighboring[node1].remove(n)
                 self.__neighboring[n].remove(node1)
                 self.__links.remove(Link(node1, n))
+    def complementary(self):
+        res = UndirectedGraph(*self.__nodes)
+        for i, n in enumerate(self.__nodes):
+            for j, m in range(i + 1, len(self.__nodes)):
+                if Link(n, self.__nodes[j]) not in self.__links:
+                    res.connect(n, self.__nodes[j])
+        return res
     def copy(self):
         res = UndirectedGraph(*self.__nodes)
         res.__links, res.__neighboring, res.__degrees, res.__degrees_sum = self.__links.copy(), self.__neighboring.copy(), self.__degrees.copy(), self.__degrees_sum
@@ -249,7 +256,7 @@ class UndirectedGraph:
         if not self.reachable(node1, node2, nodes, links):
             return False
         if not length:
-            return [False, []][node1 == node2]
+            return (False, [])[node1 == node2]
         if Link(node1, node2) in links and length == 1:
             return [Link(node1, node2)]
         All = []
@@ -338,8 +345,6 @@ class UndirectedGraph:
                         return paths[n]
                     if n not in total:
                         total.append(n)
-            if so_far == total:
-                break
             so_far = total.copy()
     def shortest_path_length(self, node1: Node, node2: Node):
         if node1 not in self.__nodes or node2 not in self.__nodes:
@@ -363,8 +368,6 @@ class UndirectedGraph:
                             return distances[n]
                         if n not in total:
                             total.append(n)
-            if so_far == total:
-                break
             so_far = total.copy()
     def Euler_tour_exists(self):
         return not any(self.__degrees[node] % 2 for node in self.__nodes)
@@ -798,6 +801,13 @@ class DirectedGraph:
                 self.__degrees[n][1] -= 1
                 self.__degrees_sum -= 2
                 self.__links.remove((node1, n))
+    def complementary(self):
+        res = DirectedGraph(*self.__nodes)
+        for i, n in enumerate(self.__nodes):
+            for j in range(i + 1, len(self.__nodes)):
+                if (n, self.__nodes[j]) not in self.__links:
+                    res.connect_from_to(n, self.__nodes[j])
+        return res
     def copy(self):
         res = DirectedGraph(*self.__nodes)
         res.__links, res.__degrees, res.__degrees_sum = self.__links.copy(), self.__degrees.copy(), self.__degrees_sum
@@ -928,19 +938,16 @@ class DirectedGraph:
                         return paths[n]
                     if n not in total:
                         total.append(n)
-            if so_far == total:
-                break
             so_far = total.copy()
-        return paths[node1]
     def shortest_path_length(self, node1: Node, node2: Node):
         distances = Dict(*[(n, len(self.__links)) for n in self.__nodes])
         distances[node2] = 0
         if node1 not in self.__nodes or node2 not in self.__nodes:
             raise Exception('Unrecognized node(s).')
-        if not self.reachable(node1, node2):
-            return float('inf')
         if (node1, node2) in self.__links:
             return 1
+        if not self.reachable(node1, node2):
+            return float('inf')
         for l in [l for l in self.__links if node2 == l[1]]:
             distances[l[0]] = 1
         so_far = [n for n in self.__nodes if (n, node2) in self.__links]
@@ -954,8 +961,6 @@ class DirectedGraph:
                             return distances[n]
                         if n not in total:
                             total.append(n)
-            if so_far == total:
-                break
             so_far = total.copy()
     def Euler_tour_exists(self):
         return all(d[0] == d[1] for d in self.__degrees.values())
@@ -1299,7 +1304,7 @@ class Tree:
             for j in range(i + 1, len(descendants)):
                 if descendants[i] == descendants[j]:
                     raise ValueError('Can\'t have a node twice in a tree!')
-        self.__hierarchy, self.__nodes, self.__links, self.__leaves = Dict((self.__root, list(descendants))), [root, *descendants], [Link(root, n) for n in descendants], [*descendants] if descendants else [root]
+        self.__hierarchy, self.__nodes, self.__links, self.__leaves = Dict((self.__root, list(descendants))), [root, *descendants], [(root, n) for n in descendants], [*descendants] if descendants else [root]
     def get_root(self):
         return self.__root
     def get_nodes(self):
@@ -1327,7 +1332,7 @@ class Tree:
             if n not in self.get_nodes():
                 self.__nodes.append(n)
                 self.__hierarchy[old].append(n)
-                self.__links.append(Link(old, n))
+                self.__links.append((old, n))
                 self.__leaves.append(n)
     def remove_node(self, node: Node):
         if node not in self.__nodes:
@@ -1352,7 +1357,7 @@ class Tree:
             for k, v in self.__hierarchy.items():
                 if node in v:
                     return k
-        raise ValueError('Node not in graph!')
+        raise ValueError('Node not in tree!')
     def node_depth(self, node: Node):
         if node in self.__nodes:
             d = 0
