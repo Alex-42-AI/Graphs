@@ -1354,8 +1354,10 @@ class Tree:
                 d += 1
             return d
         raise ValueError('Node not in graph!')
-    def depth(self):
-        return max(self.node_depth(l) for l in self.__leaves)
+    def height(self, curr_node=None):
+        if curr_node is None:
+            curr_node = self.__root
+        return 1 + max(self.height(n) for n in self.get_descendants(curr_node))
     def path_to(self, node: Node, curr_root=None):
         if curr_root is None:
             curr_root = self.__root
