@@ -284,6 +284,35 @@ class UndirectedGraph:
                 if res:
                     return [Link(n, m)] + res
         return False
+    def cliques(self, n: int):
+        from itertools import permutations
+        n = abs(n)
+        if not n or n > len(self.__nodes):
+            return []
+        if n == 1:
+            return [[_n] for _n in self.__nodes]
+        if n == len(self.__nodes):
+            return [self.__nodes.copy()]
+        result = []
+        for p in permutations(self.__nodes, n):
+            can = True
+            for i, _n in enumerate(p):
+                for j in range(i + 1, len(p)):
+                    if Link(_n, p[j]) not in self.__links:
+                        can = False
+                        break
+                if not can:
+                    break
+            if can:
+                for clique in result:
+                    exists = False
+                    for _n in p:
+                        if _n not in clique:
+                            exists = True
+                            break
+                    if not exists:
+                        result.append(list(p))
+        return result
     def holes_in_surface(self):
         if self.connected():
             i, v, loop_3 = 0, 2, bool(self.loop_with_length(3))
