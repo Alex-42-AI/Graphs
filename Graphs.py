@@ -304,14 +304,13 @@ class UndirectedGraph:
                 if not can:
                     break
             if can:
+                exists = False
                 for clique in result:
-                    exists = False
-                    for _n in p:
-                        if _n not in clique:
-                            exists = True
-                            break
-                    if not exists:
-                        result.append(list(p))
+                    if all(_n in clique for _n in p):
+                        exists = True
+                        break
+                if not exists:
+                    result.append(list(p))
         return result
     def holes_in_surface(self):
         if self.connected():
