@@ -737,6 +737,15 @@ class WeightedUndirectedGraph(UndirectedGraph):
                 if Link(n, m) in self.links():
                     res.connect(n, (m, self.weights(n, m)))
         return res
+    def path_with_length(self, node1: Node, node2: Node, length: int, nodes=None, links=None):
+        res = super().path_with_length(node1, node2, length, nodes, links)
+        return res, sum(self.__weights[l] for l in res) if res else 0
+    def loop_with_length(self, length: int, nodes=None, links=None):
+        res = super().loop_with_length(length, nodes, links)
+        return res, sum(self.__weights[l] for l in res) if res else 0
+    def get_shortest_path(self, node1: Node, node2: Node):
+        res = super().get_shortest_path(node1, node2)
+        return res, sum(self.__weights[l] for l in res)
     def minimal_spanning_tree(self):
         if self.tree():
             return self.links(), self.__total_weight
@@ -802,6 +811,18 @@ class WeightedUndirectedGraph(UndirectedGraph):
                 return DFS(node1, [[], 0], sum((sum(self.weights(n1, n2) for n2 in self.neighboring(n1) if self.weights(n1, n2) < 0) for n1 in self.nodes())) // 2)
             return f'No path between {node1} and {node2}!'
         raise ValueError('Unrecognized node(s)!')
+    def Euler_tour(self):
+        res = super().Euler_tour()
+        return res, sum(self.__weights[l] for l in res)
+    def Euler_walk(self, node1: Node, node2: Node, links=None):
+        res = super().Euler_walk(node1, node2, links)
+        return res, sum(self.__weights[l] for l in res)
+    def Hamilton_tour(self):
+        res = super().Hamilton_tour()
+        return res, sum(self.weights(res[i], res[i + 1]) for i in range(len(res) - 1))
+    def Hamilton_walk(self, node1: Node, node2=None, nodes=None, links=None, can_continue_from=None, res_stack=None):
+        res = super().Hamilton_walk(node1, node2, nodes, links, can_continue_from, res_stack)
+        return res, sum(self.weights(res[i], res[i + 1]) for i in range(len(res) - 1))
     def __add__(self, other):
         if isinstance(other, WeightedUndirectedGraph):
             res = WeightedUndirectedGraph(*self.nodes() + other.nodes())
@@ -1402,6 +1423,15 @@ class WeightedDirectedGraph(DirectedGraph):
                 if (n, m) in self.links():
                     res.connect_from_to(n, (m, self.weights(n, m)))
         return res
+    def path_with_length(self, node1: Node, node2: Node, length: int, nodes=None, links=None):
+        res = super().path_with_length(node1, node2, length, nodes, links)
+        return res, sum(self.__weights[l] for l in res) if res else 0
+    def loop_with_length(self, length: int, nodes=None, links=None):
+        res = super().loop_with_length(length, nodes, links)
+        return res, sum(self.__weights[l] for l in res) if res else 0
+    def get_shortest_path(self, node1: Node, node2: Node):
+        res = super().get_shortest_path(node1, node2)
+        return res, sum(self.__weights[l] for l in res)
     def minimal_path(self, node1: Node, node2: Node):
         if node1 in self.nodes() and node2 in self.nodes():
             if self.reachable(node1, node2):
@@ -1425,6 +1455,18 @@ class WeightedDirectedGraph(DirectedGraph):
                 return DFS(node1, [[], 0], sum((sum(self.weights(n1, n2) for n2 in [n for n in self.nodes() if (n, n1) in self.links()] if self.weights(n1, n2) < 0)) for n1 in self.nodes()))
             return f'No path between {node1} and {node2}!'
         raise ValueError('Unrecognized node(s)!')
+    def Euler_tour(self):
+        res = super().Euler_tour()
+        return res, sum(self.__weights[l] for l in res)
+    def Euler_walk(self, node1: Node, node2: Node, links=None):
+        res = super().Euler_walk(node1, node2, links)
+        return res, sum(self.__weights[l] for l in res)
+    def Hamilton_tour(self):
+        res = super().Hamilton_tour()
+        return res, sum(self.__weights[(res[i], res[i + 1])] for i in range(len(res) - 1))
+    def Hamilton_walk(self, node1: Node, node2=None, nodes=None, links=None, can_continue_from=None, res_stack=None):
+        res = super().Hamilton_walk(node1, node2, nodes, links, can_continue_from, res_stack)
+        return res, sum(self.__weights[(res[i], res[i + 1])] for i in range(len(res) - 1))
     def __add__(self, other):
         if isinstance(other, WeightedDirectedGraph):
             res = WeightedDirectedGraph(*self.nodes() + other.nodes())
