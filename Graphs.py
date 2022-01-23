@@ -321,6 +321,23 @@ class UndirectedGraph:
                     result.append(list(p))
         return result
     def chromatic_number_nodes(self, nodes=None, curr=0, so_far=None, _except=None):
+        if len(self.__nodes) * len(self.__links) > 150:
+            nodes = sorted(self.__nodes, key=lambda _n: self.__degrees[_n])
+            colors, so_far, curr = Dict((nodes[0], 0)), [nodes[0]], [nodes[0]]
+            while len(so_far) < len(nodes):
+                new_curr = []
+                for n in curr:
+                    neighboring = [n for n in self.__neighboring[n] if n not in curr + so_far]
+                    new_curr += neighboring.copy()
+                    for m in neighboring:
+                        so_far.append(m)
+                        cols = [colors[_n] for _n in filter(lambda node: node in so_far, self.__neighboring[m])]
+                        for i in range(len(cols) + 1):
+                            if i not in cols:
+                                colors[m] = i
+                                break
+                curr = new_curr.copy()
+            return max(colors.values())
         if so_far is None:
             so_far = []
         if _except is None:
