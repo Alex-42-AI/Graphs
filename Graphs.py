@@ -223,6 +223,8 @@ class UndirectedGraph:
             links = self.__links
         if len(links) < len(nodes) - 1:
             return False
+        if len(links) > (len(nodes) - 1) * (len(nodes) - 2) / 2 or len(nodes) == 1:
+            return True
         return len(self.connection_components(nodes, links)) == 1
     def tree(self):
         if not self.connected() or len(self.__nodes) != len(self.__links) + 1:
@@ -320,6 +322,18 @@ class UndirectedGraph:
                 if not exists:
                     result.append(list(p))
         return result
+    def bridge_nodes(self):
+        c, bridges = len(self.connection_components()), []
+        for n in self.__nodes:
+            if len(self.connection_components([_n for _n in self.__nodes if _n != n], [l for l in self.__links if n not in l])) > c:
+                bridges.append(n)
+        return bridges
+    def bridge_links(self):
+        c, bridges = len(self.connection_components()), []
+        for l in self.__links:
+            if len(self.connection_components(links=[_l for _l in self.__links if _l != l])) > c:
+                bridges.append(l)
+        return bridges
     def chromatic_number_nodes(self, nodes=None, curr=0, so_far=None, _except=None):
         if len(self.__nodes) * len(self.__links) > 150:
             nodes = sorted(self.__nodes, key=lambda _n: self.__degrees[_n])
@@ -939,6 +953,10 @@ class DirectedGraph:
             nodes = self.__nodes
         if links is None:
             links = self.__links
+        if len(links) < len(nodes) - 1:
+            return False
+        if len(links) > (len(nodes) - 1) * (len(nodes) - 2) or len(nodes) == 1:
+            return True
         return len(self.connection_components(nodes, links)) == 1
     def connection_components(self, nodes=None, links=None):
         if nodes is None:
@@ -1035,6 +1053,18 @@ class DirectedGraph:
                 if isinstance(res, list):
                     return [l] + res
         return False
+    def bridge_nodes(self):
+        c, bridges = len(self.connection_components()), []
+        for n in self.__nodes:
+            if len(self.connection_components([_n for _n in self.__nodes if _n != n], [l for l in self.__links if n not in l])) > c:
+                bridges.append(n)
+        return bridges
+    def bridge_links(self):
+        c, bridges = len(self.connection_components()), []
+        for l in self.__links:
+            if len(self.connection_components(links=[_l for _l in self.__links if _l != l])) > c:
+                bridges.append(l)
+        return bridges
     def get_shortest_path(self, node1: Node, node2: Node):
         if node1 not in self.__nodes or node2 not in self.__nodes:
             raise Exception('Unrecognized node(s).')
