@@ -615,6 +615,8 @@ class UndirectedGraph:
                         return res_stack + res
             return []
         raise ValueError('Unrecognized nodes!')
+    def __contains__(self, item):
+        return item in self.__nodes if isinstance(item, Node) else (item in self.__links if isinstance(item, Link) else False)
     def __add__(self, other):
         if isinstance(other, UndirectedGraph):
             res = self.copy()
@@ -1260,6 +1262,8 @@ class DirectedGraph:
                         return res_stack + res
             return []
         raise ValueError('Unrecognized nodes!')
+    def __contains__(self, item):
+        return item in self.__nodes if isinstance(item, Node) else (item in self.__links if isinstance(item, tuple) else False)
     def __add__(self, other):
         if isinstance(other, DirectedGraph):
             res = self.copy()
@@ -1599,6 +1603,8 @@ class Tree:
             res = self.path_to(node, n)
             if res:
                 return [curr_root] + res
+    def __contains__(self, item):
+        return item in self.__nodes if isinstance(item, Node) else (item in self.__links if isinstance(item, tuple) else False)
     def __eq__(self, other):
         for n in self.get_nodes():
             if n not in other.nodes():
