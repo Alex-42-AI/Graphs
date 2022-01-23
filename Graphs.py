@@ -889,9 +889,14 @@ class DirectedGraph:
         raise TypeError('Node expected!')
     def add_node(self, node: Node, pointed_by: iter, points_to: iter):
         if node not in self.__nodes:
-            for n in pointed_by + points_to:
-                if n not in self.__nodes:
-                    raise Exception('Unrecognized node(s)!')
+            res_pointed_by, res_points_to = [], []
+            for n in pointed_by:
+                if n in self.__nodes and n not in res_pointed_by:
+                    res_pointed_by.append(n)
+            for n in points_to:
+                if n in self.__nodes and n not in res_points_to:
+                    res_points_to.append(n)
+            pointed_by, points_to = res_pointed_by, res_points_to
             self.__degrees[node], self.__neighboring[node] = [0, 0], []
             for n in pointed_by:
                 self.__links.append((n, node)), self.__neighboring[n].append(node)
