@@ -146,8 +146,7 @@ class UndirectedGraph:
             self.__degrees_sum += 2 * len(current_nodes)
             for old_node in current_nodes:
                 self.__degrees[old_node] += 1
-                self.__links.append(Link(old_node, node))
-                self.__neighboring[old_node].append(node)
+                self.__links.append(Link(old_node, node)), self.__neighboring[old_node].append(node)
             self.__nodes.append(node)
             self.__neighboring[node] = list(current_nodes)
     def remove_node(self, node: Node):
@@ -164,18 +163,14 @@ class UndirectedGraph:
                 self.__degrees[node1] += 1
                 self.__degrees[current] += 1
                 self.__degrees_sum += 2
-                self.__neighboring[node1].append(current)
-                self.__neighboring[current].append(node1)
-                self.__links.append(Link(node1, current))
+                self.__neighboring[node1].append(current), self.__neighboring[current].append(node1), self.__links.append(Link(node1, current))
     def disconnect(self, node1: Node, node2: Node, *rest: Node):
         for n in [node2] + [*rest]:
             if Link(node1, n) in self.__links:
                 self.__degrees[node1] -= 1
                 self.__degrees[n] -= 1
                 self.__degrees_sum -= 2
-                self.__neighboring[node1].remove(n)
-                self.__neighboring[n].remove(node1)
-                self.__links.remove(Link(node1, n))
+                self.__neighboring[node1].remove(n), self.__neighboring[n].remove(node1), self.__links.remove(Link(node1, n))
     def complementary(self):
         res = UndirectedGraph(*self.__nodes)
         for i, n in enumerate(self.__nodes):
@@ -463,8 +458,7 @@ class UndirectedGraph:
             return 1
         for n in self.__neighboring[node2]:
             distances[n] = 1
-        so_far = self.__neighboring[node2].copy()
-        total = so_far.copy()
+        so_far, total = self.__neighboring[node2].copy(), self.__neighboring[node2].copy()
         while True:
             for n in self.__nodes:
                 for m in so_far:
@@ -685,8 +679,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
         self._UndirectedGraph__degrees_sum += 2 * len(nodes_values)
         for n, v in nodes_values:
             self._UndirectedGraph__degrees[n] += 1
-            self._UndirectedGraph__links.append(Link(n, node))
-            self._UndirectedGraph__neighboring[n].append(node)
+            self._UndirectedGraph__links.append(Link(n, node)), self._UndirectedGraph__neighboring[n].append(node)
             self.__weights[Link(node, n)] = v
             self.__total_weight += v
         self._UndirectedGraph__nodes.append(node)
@@ -697,13 +690,10 @@ class WeightedUndirectedGraph(UndirectedGraph):
         for n in self.neighboring(node):
             self._UndirectedGraph__degrees[n] -= 1
             self._UndirectedGraph__degrees_sum -= 2
-            self._UndirectedGraph__links.remove(Link(n, node))
-            self._UndirectedGraph__neighboring[n].remove(node)
+            self._UndirectedGraph__links.remove(Link(n, node)), self._UndirectedGraph__neighboring[n].remove(node)
             self.__total_weight -= self.__weights[Link(node, n)]
             self.__weights.pop(Link(node, n))
-        self._UndirectedGraph__nodes.remove(node)
-        self._UndirectedGraph__degrees.pop(node)
-        self._UndirectedGraph__neighboring.pop(node)
+        self._UndirectedGraph__nodes.remove(node), self._UndirectedGraph__degrees.pop(node), self._UndirectedGraph__neighboring.pop(node)
     def connect(self, node1: Node, node2_and_value: tuple, *nodes_values: tuple):
         if node1 in self.nodes():
             for n, v in [node2_and_value] + list(nodes_values):
@@ -727,9 +717,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
                 self._UndirectedGraph__degrees[node1] -= 1
                 self._UndirectedGraph__degrees[n] -= 1
                 self._UndirectedGraph__degrees_sum -= 2
-                self._UndirectedGraph__neighboring[node1].remove(n)
-                self._UndirectedGraph__neighboring[n].remove(node1)
-                self._UndirectedGraph__links.remove(Link(node1, n))
+                self._UndirectedGraph__neighboring[node1].remove(n), self._UndirectedGraph__neighboring[n].remove(node1), self._UndirectedGraph__links.remove(Link(node1, n))
                 self.__total_weight -= self.__weights[Link(node1, n)]
                 self.__weights.pop(Link(node1, n))
     def copy(self):
@@ -785,8 +773,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
                             node_groups.remove(second_nodes)
                             break
             if not (somewhere1 or somewhere2):
-                node_groups.append([*l])
-                res_links.append(l)
+                node_groups.append([*l]), res_links.append(l)
             if len(node_groups) == 1 and len(node_groups[0]) == len(self.nodes()):
                 return res_links, sum(self.weights(l) for l in res_links)
         return res_links, sum(v for v in (self.weights(l) for l in res_links))
@@ -810,7 +797,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
                             if res_path is None or curr[1] < res_path[1]:
                                 res_path = curr
                     return res_path
-                return DFS(node1, [[], 0], sum((sum(self.weights(n1, n2) for n2 in self.neighboring(n1) if self.weights(n1, n2) < 0) for n1 in self.nodes())) // 2)
+                return DFS(node1, [[], 0], sum(sum(self.weights(n1, n2) for n2 in self.neighboring(n1) if self.weights(n1, n2) < 0) for n1 in self.nodes()) // 2)
             return f'No path between {node1} and {node2}!'
         raise ValueError('Unrecognized node(s)!')
     def Euler_tour(self):
@@ -1138,7 +1125,10 @@ class DirectedGraph:
                             total.append(n)
             so_far = total.copy()
     def Euler_tour_exists(self):
-        return all(d[0] == d[1] for d in self.__degrees.values())
+        for d in self.__degrees.values():
+            if d[0] != d[1]:
+                return False
+        return True
     def Euler_walk_exists(self, start: Node, end: Node, links=None):
         if links is None:
             links = self.__links
@@ -1367,8 +1357,7 @@ class WeightedDirectedGraph(DirectedGraph):
                     self.__weights.pop((sec, node))
                 c -= 1
             c += 1
-        self._DirectedGraph__nodes.remove(node)
-        self._DirectedGraph__degrees.pop(node)
+        self._DirectedGraph__nodes.remove(node), self._DirectedGraph__degrees.pop(node)
     def connect_to_from(self, node1: Node, node2_and_value: tuple, *nodes_values: tuple):
         if node1 not in self.nodes():
             raise Exception('Node not found!')
@@ -1417,9 +1406,8 @@ class WeightedDirectedGraph(DirectedGraph):
                 self._DirectedGraph__degrees[node1][0] -= 1
                 self._DirectedGraph__degrees[n][1] -= 1
                 self._DirectedGraph__degrees -= 2
-                self._DirectedGraph__links.remove((node1, n))
                 self.__total_weight -= self.__weights[(node1, n)]
-                self.__weights.pop((node1, n))
+                self.__weights.pop((node1, n)), self._DirectedGraph__links.remove((node1, n))
     def copy(self):
         res = WeightedDirectedGraph(*self.nodes())
         for n in self.nodes():
@@ -1527,21 +1515,21 @@ class Tree:
                 if descendants[i] == descendants[j]:
                     raise ValueError('Can\'t have a node twice in a tree!')
         self.__hierarchy, self.__nodes, self.__links, self.__leaves = Dict((self.__root, list(descendants))), [root, *descendants], [(root, n) for n in descendants], [*descendants] if descendants else [root]
-    def get_root(self):
+    def root(self):
         return self.__root
-    def get_nodes(self):
+    def nodes(self):
         return self.__nodes
-    def get_links(self):
+    def links(self):
         return self.__links
-    def get_leaves(self):
+    def leaves(self):
         return self.__leaves
-    def get_hierarchy(self):
+    def hierarchy(self):
         return self.__hierarchy
-    def get_descendants(self, node: Node):
+    def descendants(self, node: Node):
         return self.__hierarchy[node]
     def copy(self):
-        res = Tree(self.get_root())
-        res.__hierarchy, res.__nodes, res.__links, res.__leaves = self.get_hierarchy().copy(), self.get_nodes().copy(), self.get_links().copy(), self.get_leaves().copy()
+        res = Tree(self.root())
+        res.__hierarchy, res.__nodes, res.__links, res.__leaves = self.hierarchy().copy(), self.nodes().copy(), self.links().copy(), self.leaves().copy()
         return res
     def add_nodes_to(self, old: Node, node: Node, *rest: Node):
         if old not in self.__nodes:
@@ -1551,7 +1539,7 @@ class Tree:
         if self.__hierarchy[old] is None:
             self.__hierarchy[old] = []
         for n in [node] + [*rest]:
-            if n not in self.get_nodes():
+            if n not in self.nodes():
                 self.__nodes.append(n)
                 self.__hierarchy[old].append(n)
                 self.__links.append((old, n))
@@ -1572,7 +1560,7 @@ class Tree:
             if not self.__hierarchy[c]:
                 self.__leaves.append(c)
         self.__hierarchy.pop(node)
-    def get_parent(self, node: Node):
+    def parent(self, node: Node):
         if node in self.__nodes:
             if node == self.__root:
                 return None
@@ -1584,14 +1572,14 @@ class Tree:
         if node in self.__nodes:
             d = 0
             while node != self.__root:
-                node = self.get_parent(node)
+                node = self.parent(node)
                 d += 1
             return d
         raise ValueError('Node not in graph!')
     def height(self, curr_node=None):
         if curr_node is None:
             curr_node = self.__root
-        return 1 + max(self.height(n) for n in self.get_descendants(curr_node))
+        return 1 + max(self.height(n) for n in self.descendants(curr_node))
     def path_to(self, node: Node, curr_root=None):
         if curr_root is None:
             curr_root = self.__root
@@ -1599,14 +1587,14 @@ class Tree:
             return [node]
         if curr_root in self.__leaves:
             return
-        for n in self.get_descendants(curr_root):
+        for n in self.descendants(curr_root):
             res = self.path_to(node, n)
             if res:
                 return [curr_root] + res
     def __contains__(self, item):
         return item in self.__nodes if isinstance(item, Node) else (item in self.__links if isinstance(item, tuple) else False)
     def __eq__(self, other):
-        for n in self.get_nodes():
+        for n in self.nodes():
             if n not in other.nodes():
                 return False
         if len(self.__nodes) - len(other.__nodes):
