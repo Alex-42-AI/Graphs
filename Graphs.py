@@ -330,7 +330,7 @@ class UndirectedGraph:
                 bridges.append(l)
         return bridges
     def chromatic_number_nodes(self, nodes=None, curr=0, so_far=None, _except=None):
-        if len(self.__nodes) * len(self.__links) > 150:
+        if len(self.__links) > 20:
             nodes = sorted(self.__nodes, key=lambda _n: self.__degrees[_n])
             colors, so_far, curr = Dict((nodes[0], 0)), [nodes[0]], [nodes[0]]
             while len(so_far) < len(nodes):
