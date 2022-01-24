@@ -700,7 +700,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
                 if n in self.nodes() and n not in [p[0] for p in res]:
                     res.append((n, v))
             for n, v in res:
-                if type(v) not in [int, float]:
+                if not isinstance(v, (int, float)):
                     raise TypeError('Real numerical values expected!')
             super().add_node(node, *[p[0] for p in res])
             for n, v in res:
@@ -723,7 +723,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
                 if n not in [p[0] for p in res] and n in self.nodes() and n != node1:
                     res.append((n, v))
             for n, v in res:
-                if type(v) not in [int, float]:
+                if not isinstance(v, (int, float)):
                     raise TypeError('Real numerical value expected!')
             super().connect(node1, *[p[0] for p in res])
             for current, v in res:
