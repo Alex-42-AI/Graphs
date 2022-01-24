@@ -119,19 +119,17 @@ class UndirectedGraph:
         if node is None:
             return self.__neighboring
         if isinstance(node, Node):
-            try:
+            if node in self.__nodes:
                 return self.__neighboring[node]
-            except KeyError:
-                raise KeyError('No such node in the graph!')
+            raise KeyError('No such node in the graph!')
         raise TypeError('Node expected!')
     def degrees(self, node=None):
         if node is None:
             return self.__degrees
         if isinstance(node, Node):
-            try:
+            if node in self.__nodes:
                 return self.__degrees[node]
-            except KeyError:
-                raise KeyError('No such node in the graph!')
+            raise KeyError('No such node in the graph!')
         raise TypeError('Node expected!')
     def degrees_sum(self):
         return self.__degrees_sum
@@ -575,6 +573,8 @@ class UndirectedGraph:
             return []
         raise Exception('Unrecognized nodes!')
     def Hamilton_tour(self):
+        if any(self.__degrees[n] <= 1 for n in self.__nodes) or not self.connected():
+            return []
         for n1 in self.__nodes:
             for n2 in self.__neighboring[n1]:
                 res = self.Hamilton_walk(n1, n2)
@@ -587,10 +587,22 @@ class UndirectedGraph:
                 nodes = self.__nodes
             if links is None:
                 links = self.__links
+            if not self.connected(nodes, links):
+                return []
             if res_stack is None:
                 res_stack = [node1]
             if can_continue_from is None:
                 can_continue_from = [n for n in nodes if Link(node1, n) in links and n != node2]
+            curr_degrees = Dict(*[(n, 0) for n in nodes])
+            for n in nodes:
+                for m in self.__neighboring[n]:
+                    curr_degrees[n] += Link(n, m) in links
+            total = []
+            for n in nodes:
+                if curr_degrees[n] == 1:
+                    total.append(n)
+            if len(total) > 1 + (node1 in total):
+                return []
             if node2 is None:
                 if len(nodes) == 1:
                     return nodes
@@ -608,6 +620,8 @@ class UndirectedGraph:
                         return res_stack + res
             return []
         raise ValueError('Unrecognized nodes!')
+    def __reversed__(self):
+        return self.complementary()
     def __contains__(self, item):
         return item in self.__nodes if isinstance(item, Node) else (item in self.__links if isinstance(item, Link) else False)
     def __add__(self, other):
@@ -649,7 +663,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
             return ', '.join([str(k) + ' -> ' + str(v) for k, v in self.__weights.items()])
         elif isinstance(node1_or_link, Node):
             if node2 is None:
-                return ', '.join(str(Link(node1_or_link, n)) + ' -> ' + str(self.__weights[Link(node1_or_link, n)]) for n in self._UndirectedGraph__neighboring[node1_or_link])
+                return ', '.join(str(Link(node1_or_link, n)) + ' -> ' + str(self.__weights[Link(node1_or_link, n)]) for n in self.neighboring(node1_or_link))
             if isinstance(node2, Node):
                 if node2 in self.nodes():
                     if Link(node1_or_link, node2) in self.links():
@@ -1114,17 +1128,17 @@ class DirectedGraph:
         for d in self.__degrees.values():
             if d[0] != d[1]:
                 return False
-        return True
+        return self.connected()
     def Euler_walk_exists(self, start: Node, end: Node, links=None):
         if links is None:
             links = self.__links
         if self.Euler_tour_exists():
-            return True
-        temp_degrees = {n: [sum([n == l[0] for l in links]), sum([n == l[1] for l in links])] for n in self.__nodes}
+            return start == end
+        temp_degrees = Dict(*[(n, [sum([n == l[0] for l in links]), sum([n == l[1] for l in links])]) for n in self.__nodes])
         for node in self.__nodes:
             if temp_degrees[node][0] % 2 and node != start or temp_degrees[node][1] % 2 and node != end:
                 return False
-        return temp_degrees[start][0] % 2 + temp_degrees[end][1] % 2 in [0, 2]
+        return temp_degrees[start][0] % 2 + temp_degrees[end][1] % 2 in [0, 2] and self.connected()
     def Hamilton_tour_exists(self, nodes=None, links=None, can_continue_from=None, can_end_in=None, end_links=None):
         if nodes is None:
             nodes = self.__nodes
@@ -1205,6 +1219,8 @@ class DirectedGraph:
             return []
         raise ValueError('Unrecognized nodes!')
     def Hamilton_tour(self):
+        if any(not self.__degrees[n][0] or not self.__degrees[n][1] for n in self.__nodes) or not self.connected():
+            return []
         for n1 in self.__nodes:
             for n2 in [_n for _n in self.__nodes if (_n, n1) in self.__links]:
                 res = self.Hamilton_walk(n1, n2)
@@ -1217,6 +1233,8 @@ class DirectedGraph:
                 nodes = self.__nodes
             if links is None:
                 links = self.__links
+            if not self.connected(nodes, links):
+                return []
             if res_stack is None:
                 res_stack = [node1]
             if can_continue_from is None:
@@ -1238,6 +1256,8 @@ class DirectedGraph:
                         return res_stack + res
             return []
         raise ValueError('Unrecognized nodes!')
+    def __reversed__(self):
+        return self.complementary()
     def __contains__(self, item):
         return item in self.__nodes if isinstance(item, Node) else (item in self.__links if isinstance(item, tuple) else False)
     def __add__(self, other):
