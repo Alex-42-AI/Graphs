@@ -233,7 +233,7 @@ class UndirectedGraph:
             return True
         return len(self.connection_components(nodes, links)) == 1
     def tree(self):
-        if not self.connected() or len(self.__nodes) != len(self.__links) + 1:
+        if len(self.__nodes) != len(self.__links) + 1:
             return False
         nodes, duplicates = [], []
         for l in self.__links:
