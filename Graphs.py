@@ -231,7 +231,17 @@ class UndirectedGraph:
             return False
         if len(links) > (len(nodes) - 1) * (len(nodes) - 2) / 2 or len(nodes) == 1:
             return True
-        return len(self.connection_components(nodes, links)) == 1
+        so_far, total = [nodes[0]], [nodes[0]]
+        while True:
+            for n in so_far:
+                for m in [m for m in nodes if Link(m, n) in links]:
+                    if m not in total:
+                        total.append(m)
+                        if len(total) == len(nodes):
+                            return True
+            if so_far == total:
+                return False
+            so_far = total.copy()
     def tree(self):
         if len(self.__nodes) != len(self.__links) + 1:
             return False
@@ -987,7 +997,17 @@ class DirectedGraph:
             return False
         if len(links) > (len(nodes) - 1) * (len(nodes) - 2) or len(nodes) == 1:
             return True
-        return len(self.connection_components(nodes, links)) == 1
+        so_far, total = [nodes[0]], [nodes[0]]
+        while True:
+            for n in so_far:
+                for m in [m for m in nodes if (m, n) in links or (n, m) in links]:
+                    if m not in total:
+                        total.append(m)
+                        if len(total) == len(nodes):
+                            return True
+            if so_far == total:
+                return False
+            so_far = total.copy()
     def connection_components(self, nodes=None, links=None):
         if nodes is None:
             nodes = self.__nodes
