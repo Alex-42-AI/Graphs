@@ -11,37 +11,44 @@ class Dict:
             for item2 in self.__items[i + 1:]:
                 if item1[0] == item2[0]:
                     raise KeyError('No similar keys in a dictionary allowed!')
+        self.__keys, self.__values = [p[0] for p in self.__items], [p[1] for p in self.__items]
     def keys(self):
-        return [p[0] for p in self.__items]
+        return self.__keys
     def values(self):
-        return [p[1] for p in self.__items]
+        return self.__values
     def items(self):
         return self.__items
     def pop(self, item):
-        for i in self.__items:
-            if item == i[0]:
-                self.__items.remove(i)
-                return i[1]
+        for i, p in enumerate(self.__items):
+            if item == p[0]:
+                self.__items.remove(p), self.__keys.remove(item)
+                del self.__values[i]
+                return p[1]
         raise KeyError(item)
     def popitem(self):
         if self.items():
             res = self.__items[-1]
-            self.__items.pop()
+            self.__items.pop(), self.__keys.pop(), self.__values.pop()
             return res
     def copy(self):
         return Dict(*self.__items)
     def __len__(self):
         return len(self.__items)
+    def __contains__(self, item):
+        return item in self.__keys
+    def __delitem__(self, key):
+        self.pop(key)
     def __getitem__(self, item):
         try:
-            return self.values()[self.keys().index(item)]
+            return self.__values[self.__keys.index(item)]
         except ValueError:
             pass
     def __setitem__(self, key, value):
         try:
-            self.__items[self.keys().index(key)] = (key, value)
+            self.__items[self.__keys.index(key)] = (key, value)
+            self.__values[self.__keys.index(key)] = value
         except ValueError:
-            self.__items.append((key, value))
+            self.__items.append((key, value)), self.__keys.append(key), self.__values.append(value)
     def __add__(self, other):
         if isinstance(other, (dict, Dict)):
             return Dict(*(self.items() + other.items()))
