@@ -22,7 +22,7 @@ class Dict:
         for i, p in enumerate(self.__items):
             if item == p[0]:
                 self.__items.remove(p), self.__keys.remove(item)
-                del self.__values[i]
+                self.__values.pop(i)
                 return p[1]
         raise KeyError(item)
     def popitem(self):
@@ -117,10 +117,7 @@ class UndirectedGraph:
         for n in tuple([start]) + rest:
             if n not in self.__nodes:
                 self.__nodes.append(n)
-        self.__links = []
-        self.__neighboring = Dict(*[(n, []) for n in self.__nodes])
-        self.__degrees = Dict(*[(n, 0) for n in self.__nodes])
-        self.__degrees_sum = 0
+        self.__links, self.__neighboring, self.__degrees, self.__degrees_sum = [], Dict(*[(n, []) for n in self.__nodes]), Dict(*[(n, 0) for n in self.__nodes]), 0
     def nodes(self):
         return self.__nodes
     def links(self):
@@ -153,8 +150,7 @@ class UndirectedGraph:
             self.__degrees_sum += 2 * len(current_nodes)
             for old_node in res:
                 self.__degrees[old_node] += 1
-                self.__links.append(Link(old_node, node))
-                self.__neighboring[old_node].append(node)
+                self.__links.append(Link(old_node, node)), self.__neighboring[old_node].append(node)
             self.__nodes.append(node)
             self.__neighboring[node] = res
     def remove(self, *nodes: Node):
@@ -163,42 +159,32 @@ class UndirectedGraph:
                 for n in self.__neighboring[node]:
                     self.__degrees[n] -= 1
                     self.__degrees_sum -= 2
-                    self.__links.remove(Link(n, node))
-                    self.__neighboring[n].remove(node)
-                self.__nodes.remove(node)
-                self.__degrees.pop(node)
-                self.__neighboring.pop(node)
+                    self.__links.remove(Link(n, node)), self.__neighboring[n].remove(node)
+                self.__nodes.remove(node), self.__degrees.pop(node), self.__neighboring.pop(node)
     def connect(self, node1: Node, node2: Node, *rest: Node):
         for current in [node2] + [*rest]:
             if Link(node1, current) not in self.__links and node1 != current and current in self.__nodes:
                 self.__degrees[node1] += 1
                 self.__degrees[current] += 1
                 self.__degrees_sum += 2
-                self.__neighboring[node1].append(current)
-                self.__neighboring[current].append(node1)
-                self.__links.append(Link(node1, current))
+                self.__neighboring[node1].append(current), self.__neighboring[current].append(node1), self.__links.append(Link(node1, current))
     def disconnect(self, node1: Node, node2: Node, *rest: Node):
         for n in [node2] + [*rest]:
             if Link(node1, n) in self.__links:
                 self.__degrees[node1] -= 1
                 self.__degrees[n] -= 1
                 self.__degrees_sum -= 2
-                self.__neighboring[node1].remove(n)
-                self.__neighboring[n].remove(node1)
-                self.__links.remove(Link(node1, n))
+                self.__neighboring[node1].remove(n), self.__neighboring[n].remove(node1), self.__links.remove(Link(node1, n))
     def complementary(self):
         res = UndirectedGraph(*self.__nodes)
         for i, n in enumerate(self.__nodes):
-            for j, m in range(i + 1, len(self.__nodes)):
+            for j in range(i + 1, len(self.__nodes)):
                 if Link(n, self.__nodes[j]) not in self.__links:
                     res.connect(n, self.__nodes[j])
         return res
     def copy(self):
         res = UndirectedGraph(*self.__nodes)
-        res.__links = self.__links.copy()
-        res.__neighboring = self.__neighboring.copy()
-        res.__degrees = self.__degrees.copy()
-        res.__degrees_sum = self.__degrees_sum
+        res.__links, res.__neighboring, res.__degrees, res.__degrees_sum = self.__links.copy(), self.__neighboring.copy(), self.__degrees.copy(), self.__degrees_sum
         return res
     def connection_components(self, nodes=None, links=None):
         if nodes is None:
@@ -206,7 +192,7 @@ class UndirectedGraph:
         if links is None:
             links = self.__links
         if len(nodes) == 1:
-            return [nodes.copy()]
+            return [nodes]
         components, current, total, old = [[nodes[0]]], [nodes[0]], [nodes[0]], []
         while True:
             new = []
@@ -274,9 +260,17 @@ class UndirectedGraph:
             links = self.__links
         if node1 not in nodes or node2 not in nodes:
             raise Exception('Unrecognized node(s).')
-        for comp in self.connection_components(nodes, links):
-            if node1 in comp:
-                return node2 in comp
+        total, so_far = [node1], [node1]
+        while True:
+            for m in so_far:
+                for n in [n for n in nodes if Link(m, n) in links and n not in total]:
+                    if n == node2:
+                        return True
+                    if n not in total:
+                        total.append(n)
+            if so_far == total:
+                return False
+            so_far = total.copy()
     def path_with_length(self, node1: Node, node2: Node, length: int, nodes=None, links=None):
         if nodes is None:
             nodes = self.__nodes
@@ -298,7 +292,7 @@ class UndirectedGraph:
             if sec in nodes:
                 if self.reachable(sec, node2, nodes, [L for L in links if L != l]):
                     res = self.path_with_length(sec, node2, length - 1, [n for n in nodes if n != node1], [L for L in links if L != l])
-                    if res:
+                    if isinstance(res, list):
                         All.append([l] + res)
         for path in All:
             if len(path) == length:
@@ -325,7 +319,7 @@ class UndirectedGraph:
         if n == 1:
             return [[_n] for _n in self.__nodes]
         if n == len(self.__nodes):
-            return [self.__nodes.copy()]
+            return [[], [self.__nodes.copy()]][self.full()]
         result = []
         for p in permutations(self.__nodes, n):
             can = True
@@ -357,8 +351,8 @@ class UndirectedGraph:
             if len(self.connection_components(links=[_l for _l in self.__links if _l != l])) > c:
                 bridges.append(l)
         return bridges
-    def chromatic_number_nodes(self, nodes=None, curr=0, so_far=None, _except=None):
-        if len(self.__links) > 20:  # If the links are too many, the greedy coloring algorythm is applied. It's not minimalistic, but it's fast.
+    def chromatic_number_nodes(self, nodes=None, curr=0, so_far=None, Except=None):
+        if len(self.__links) > 30:
             nodes = sorted(self.__nodes, key=lambda _n: self.__degrees[_n])
             colors, so_far, curr = Dict((nodes[0], 0)), [nodes[0]], [nodes[0]]
             while len(so_far) < len(nodes):
@@ -377,8 +371,8 @@ class UndirectedGraph:
             return max(colors.values())
         if so_far is None:
             so_far = []
-        if _except is None:
-            _except = []
+        if Except is None:
+            Except = []
         if nodes is None:
             nodes = list(sorted(self.__nodes, key=lambda _n: self.__degrees[_n]))
         if not nodes:
@@ -392,14 +386,14 @@ class UndirectedGraph:
                     curr_degrees[n] += 1
         nodes = [nodes[0]] + list(sorted([_n for _n in nodes if _n != nodes[0]], key=lambda _n: curr_degrees[_n]))
         so_far.append(nodes[0])
-        rest = [_n for _n in nodes if _n not in self.__neighboring[nodes[0]] and _n != nodes[0] and _n not in _except]
+        rest = [_n for _n in nodes if _n not in self.__neighboring[nodes[0]] and _n != nodes[0] and _n not in Except]
         if not rest:
             _res = self.chromatic_number_nodes([n for n in nodes if n not in so_far], curr + 1, so_far)
             so_far.pop()
             return _res
         res = len(self.__nodes)
         for n in rest:
-            _res = self.chromatic_number_nodes([n] + [_n for _n in nodes if _n not in (nodes[0], n)], curr, so_far, _except + [_n for _n in nodes if Link(nodes[0], _n) in self.__links or Link(n, _n) in self.__links])
+            _res = self.chromatic_number_nodes([n] + [_n for _n in nodes if _n not in (nodes[0], n)], curr, so_far, Except + [_n for _n in nodes if Link(nodes[0], _n) in self.__links or Link(n, _n) in self.__links])
             if n in so_far:
                 so_far.remove(n)
             res = min(res, _res)
@@ -415,11 +409,11 @@ class UndirectedGraph:
         return res_graph.chromatic_number_nodes()
     def holes_in_surface(self):
         if self.connected():
-            i, v = 0, 2 + bool(self.loop_with_length(3))
+            holes, v = 0, 2 + bool(self.loop_with_length(3))
             while True:
                 if v * (len(self.__nodes) - 2) >= len(self.__links):
-                    return i
-                i += 1
+                    return holes
+                holes += 1
                 v += 2
         Max = 0
         for comp in self.connection_components():
@@ -435,7 +429,7 @@ class UndirectedGraph:
     def faces(self):
         if self.connected():
             return len(self.__links) - len(self.__nodes) + 2 - 2 * self.holes_in_surface()
-        total = 0
+        total = 1
         for comp in self.connection_components():
             curr = UndirectedGraph(*comp)
             for n in curr.nodes():
@@ -456,7 +450,7 @@ class UndirectedGraph:
         if Link(node1, node2) in self.__links:
             return [Link(node1, node2)]
         if not self.reachable(node1, node2):
-            return False
+            return []
         paths = Dict(*[(n, None) for n in self.__nodes])
         paths[node2] = []
         for n in self.__neighboring[node2]:
@@ -509,7 +503,7 @@ class UndirectedGraph:
         for node in self.__nodes:
             if temp_degrees[node] % 2 and node not in [start, end]:
                 return False
-        return temp_degrees[start] % 2 + temp_degrees[end] % 2 in [0, 2]
+        return temp_degrees[start] % 2 + temp_degrees[end] % 2 == [2, 0][start == end]
     def Hamilton_tour_exists(self, nodes=None, links=None, can_continue_from=None, can_end_in=None, end_links=None):
         if nodes is None:
             nodes = self.__nodes
@@ -610,14 +604,14 @@ class UndirectedGraph:
             for n2 in self.__neighboring[n1]:
                 res = self.Hamilton_walk(n1, n2)
                 if res:
-                    return res
+                    return res + [n1]
         return []
     def Hamilton_walk(self, node1: Node, node2=None, nodes=None, links=None, can_continue_from=None, res_stack=None):
-        if node1 in self.__nodes and (node2 is None or node2 in self.__nodes):
-            if nodes is None:
-                nodes = self.__nodes
-            if links is None:
-                links = self.__links
+        if nodes is None:
+            nodes = self.__nodes
+        if links is None:
+            links = self.__links
+        if node1 in self.__nodes and (node2 is None or node2 in nodes):
             if not self.connected(nodes, links):
                 return []
             if res_stack is None:
@@ -628,11 +622,11 @@ class UndirectedGraph:
             for n in nodes:
                 for m in self.__neighboring[n]:
                     curr_degrees[n] += Link(n, m) in links
-            total = []
+            nodes_with_degree_1 = []
             for n in nodes:
                 if curr_degrees[n] == 1:
-                    total.append(n)
-            if len(total) > 1 + (node1 in total):
+                    nodes_with_degree_1.append(n)
+            if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1):
                 return []
             if node2 is None:
                 if len(nodes) == 1:
@@ -654,7 +648,7 @@ class UndirectedGraph:
     def __reversed__(self):
         return self.complementary()
     def __contains__(self, item):
-        return item in self.__nodes if isinstance(item, Node) else (item in self.__links if isinstance(item, Link) else False)
+        return item in self.__nodes if isinstance(item, Node) else item in self.__links
     def __add__(self, other):
         if isinstance(other, UndirectedGraph):
             res = self.copy()
@@ -688,8 +682,7 @@ class UndirectedGraph:
 class WeightedUndirectedGraph(UndirectedGraph):
     def __init__(self, start: Node, *rest: Node):
         super().__init__(start, *rest)
-        self.__weights = Dict(*[(l, 0) for l in self.links()])
-        self.__total_weight = 0
+        self.__weights, self.__total_weight = Dict(*[(l, 0) for l in self.links()]), 0
     def weights(self, node1_or_link=None, node2=None):
         if node1_or_link is None:
             return ', '.join([str(k) + ' -> ' + str(v) for k, v in self.__weights.items()])
@@ -839,11 +832,53 @@ class WeightedUndirectedGraph(UndirectedGraph):
         res = super().Euler_walk(node1, node2, links)
         return res, sum(self.__weights[l] for l in res)
     def Hamilton_tour(self):
-        res = super().Hamilton_tour()
-        return res, sum(self.weights(res[i], res[i + 1]) for i in range(len(res) - 1))
+        if any(self.__degrees[n] <= 1 for n in self.__nodes) or not self.connected():
+            return [], 0
+        for n1 in self.__nodes:
+            for n2 in self.__neighboring[n1]:
+                res = self.Hamilton_walk(n1, n2)
+                if res[0]:
+                    return res[0] + [n1], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1)) + self.weights(res[0][-1], res[0][0])
+        return [], 0
     def Hamilton_walk(self, node1: Node, node2=None, nodes=None, links=None, can_continue_from=None, res_stack=None):
-        res = super().Hamilton_walk(node1, node2, nodes, links, can_continue_from, res_stack)
-        return res, sum(self.weights(res[i], res[i + 1]) for i in range(len(res) - 1))
+        if nodes is None:
+            nodes = self.__nodes
+        if links is None:
+            links = self.__links
+        if node1 in self.__nodes and (node2 is None or node2 in nodes):
+            if not self.connected(nodes, links):
+                return []
+            if res_stack is None:
+                res_stack = [node1]
+            if can_continue_from is None:
+                can_continue_from = [n for n in nodes if Link(node1, n) in links and n != node2]
+            curr_degrees = Dict(*[(n, 0) for n in nodes])
+            for n in nodes:
+                for m in self.__neighboring[n]:
+                    curr_degrees[n] += Link(n, m) in links
+            nodes_with_degree_1 = []
+            for n in nodes:
+                if curr_degrees[n] == 1:
+                    nodes_with_degree_1.append(n)
+            if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1):
+                return [], 0
+            if node2 is None:
+                if len(nodes) == 1:
+                    return nodes
+                for n2 in [n for n in nodes if n != node1]:
+                    res = self.Hamilton_walk(node1, n2)
+                    if res[0]:
+                        return res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
+            else:
+                if len(nodes) == 2 and Link(node1, node2) in links:
+                    return [node1, node2]
+            for n in sorted([n for n in can_continue_from], key=lambda x: self.__weights[Link(node1, n)]):
+                if node2 is None or n != node2:
+                    res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]], [n])
+                    if res[0]:
+                        return res_stack + res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
+            return [], 0
+        raise ValueError('Unrecognized nodes!')
     def __add__(self, other):
         if isinstance(other, WeightedUndirectedGraph):
             res = WeightedUndirectedGraph(*self.nodes() + other.nodes())
@@ -896,10 +931,7 @@ class DirectedGraph:
         for n in tuple([start]) + rest:
             if n not in self.__nodes:
                 self.__nodes.append(n)
-        self.__links = []
-        self.__degrees_sum = 0
-        self.__degrees = Dict(*[(n, [0, 0]) for n in self.__nodes])
-        self.__neighboring = Dict(*[(n, []) for n in self.__nodes])
+        self.__links, self.__degrees_sum, self.__degrees, self.__neighboring = [], 0, Dict(*[(n, [0, 0]) for n in self.__nodes]), Dict(*[(n, []) for n in self.__nodes])
     def nodes(self):
         return self.__nodes
     def links(self):
@@ -950,7 +982,7 @@ class DirectedGraph:
                 while c < len(self.__links):
                     link = self.__links[c]
                     if node in link:
-                        sec = link[1 - link.index(node)]
+                        sec = link.other(node)
                         if node == link[1]:
                             self.__neighboring[sec].remove(node)
                         self.__degrees[sec][link.index(sec)] -= 1
@@ -991,9 +1023,7 @@ class DirectedGraph:
         return res
     def copy(self):
         res = DirectedGraph(*self.__nodes)
-        res.__links = self.__links.copy()
-        res.__degrees = self.__degrees.copy()
-        res.__degrees_sum = self.__degrees_sum
+        res.__links, res.__degrees, res.__degrees_sum = self.__links.copy(), self.__degrees.copy(), self.__degrees_sum
         return res
     def connected(self, nodes=None, links=None):
         if nodes is None:
@@ -1020,8 +1050,7 @@ class DirectedGraph:
             nodes = self.__nodes
         if links is None:
             links = self.__links
-        components, old = [[nodes[0]]], []
-        current, total = [nodes[0]], [nodes[0]]
+        components, current, total, old = [[nodes[0]]], [nodes[0]], [nodes[0]], []
         while True:
             new = []
             for node in current:
@@ -1060,21 +1089,17 @@ class DirectedGraph:
             links = self.__links
         if node1 not in nodes or node2 not in nodes:
             raise Exception('Unrecognized node(s).')
-        for comp in self.connection_components(nodes, links):
-            if node1 in comp:
-                if node2 in comp:
-                    total, so_far = [node1], [node1]
-                    while True:
-                        for m in so_far:
-                            for n in [n for n in nodes if (m, n) in links and n not in total]:
-                                if n == node2:
-                                    return True
-                                if n not in total:
-                                    total.append(n)
-                        if so_far == total:
-                            break
-                        so_far = total.copy()
+        total, so_far = [node1], [node1]
+        while True:
+            for m in so_far:
+                for n in [n for n in nodes if (m, n) in links and n not in total]:
+                    if n == node2:
+                        return True
+                    if n not in total:
+                        total.append(n)
+            if so_far == total:
                 return False
+            so_far = total.copy()
     def path_with_length(self, node1: Node, node2: Node, length: int, nodes=None, links=None):
         if nodes is None:
             nodes = self.__nodes
@@ -1112,15 +1137,13 @@ class DirectedGraph:
                     return [l] + res
         return False
     def bridge_nodes(self):
-        c = len(self.connection_components())
-        bridges = []
+        c, bridges = len(self.connection_components()), []
         for n in self.__nodes:
             if len(self.connection_components([_n for _n in self.__nodes if _n != n], [l for l in self.__links if n not in l])) > c:
                 bridges.append(n)
         return bridges
     def bridge_links(self):
-        c = len(self.connection_components())
-        bridges = []
+        c, bridges = len(self.connection_components()), []
         for l in self.__links:
             if len(self.connection_components(links=[_l for _l in self.__links if _l != l])) > c:
                 bridges.append(l)
@@ -1274,7 +1297,7 @@ class DirectedGraph:
         for n1 in self.__nodes:
             for n2 in [_n for _n in self.__nodes if (_n, n1) in self.__links]:
                 res = self.Hamilton_walk(n1, n2)
-                if isinstance(res, list):
+                if res:
                     return res
         return []
     def Hamilton_walk(self, node1: Node, node2=None, nodes=None, links=None, can_continue_from=None, res_stack=None):
@@ -1309,7 +1332,7 @@ class DirectedGraph:
     def __reversed__(self):
         return self.complementary()
     def __contains__(self, item):
-        return item in self.__nodes if isinstance(item, Node) else (item in self.__links if isinstance(item, tuple) else False)
+        return item in self.__nodes if isinstance(item, Node) else item in self.__links
     def __add__(self, other):
         if isinstance(other, DirectedGraph):
             res = self.copy()
@@ -1335,14 +1358,13 @@ class DirectedGraph:
             return True
         return False
     def __str__(self):
-        return '({' + ', '.join(str(n) for n in self.__nodes) + '}, {' + ', '.join(str(l) for l in self.__links) + '})'
+        return '({' + ', '.join(str(n) for n in self.__nodes) + '}, {' + ', '.join(str(l[0]) + '->' + str(l[1]) for l in self.__links) + '})'
     def __repr__(self):
         return str(self)
 class WeightedDirectedGraph(DirectedGraph):
     def __init__(self, start: Node, *rest: Node):
         super().__init__(start, *rest)
-        self.__weights = Dict(*[(l, 0) for l in self.links()])
-        self.__total_weight = 0
+        self.__weights, self.__total_weight = Dict(*[(l, 0) for l in self.links()]), 0
     def weights(self, node1_or_link=None, node2=None):
         if node1_or_link is None:
             return ', '.join([str(k) + ' -> ' + str(v) for k, v in self.__weights.items()])
@@ -1398,7 +1420,7 @@ class WeightedDirectedGraph(DirectedGraph):
                 if len(p) != 2:
                     raise ValueError('Node-value pairs expected!')
             for v in [p[1] for p in [node2_and_value] + list(nodes_values)]:
-                if not isinstance(v, (int, float)):
+                if type(v) not in [int, float]:
                     raise TypeError('Real numerical values expected!')
             super().connect_to_from(node1, *[p[0] for p in [node2_and_value] + list(nodes_values)])
             for current, v in [node2_and_value] + list(nodes_values):
@@ -1412,7 +1434,7 @@ class WeightedDirectedGraph(DirectedGraph):
             if len(p) != 2:
                 raise ValueError('Node-value pairs expected!')
         for v in [p[1] for p in [node2_and_value] + list(nodes_values)]:
-            if not isinstance(v, (int, float)):
+            if type(v) not in [int, float]:
                 raise TypeError('Real numerical value expected!')
         super().connect_from_to(node1, *[p[0] for p in [node2_and_value] + list(nodes_values)])
         for current, v in [node2_and_value] + list(nodes_values):
@@ -1471,11 +1493,52 @@ class WeightedDirectedGraph(DirectedGraph):
         res = super().Euler_walk(node1, node2, links)
         return res, sum(self.__weights[l] for l in res)
     def Hamilton_tour(self):
-        res = super().Hamilton_tour()
-        return res, sum(self.__weights[(res[i], res[i + 1])] for i in range(len(res) - 1))
+        if any(self.__degrees[n] <= 1 for n in self.__nodes) or not self.connected():
+            return [], 0
+        for n1 in self.__nodes:
+            for n2 in self.__neighboring[n1]:
+                res = self.Hamilton_walk(n1, n2)
+                if res[0]:
+                    return res[0] + [n1], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1)) + self.weights(res[0][-1], res[0][0])
+        return [], 0
     def Hamilton_walk(self, node1: Node, node2=None, nodes=None, links=None, can_continue_from=None, res_stack=None):
-        res = super().Hamilton_walk(node1, node2, nodes, links, can_continue_from, res_stack)
-        return res, sum(self.__weights[(res[i], res[i + 1])] for i in range(len(res) - 1))
+        if nodes is None:
+            nodes = self.__nodes
+        if links is None:
+            links = self.__links
+        if node1 in self.__nodes and (node2 is None or node2 in nodes):
+            if not self.connected(nodes, links):
+                return []
+            if res_stack is None:
+                res_stack = [node1]
+            if can_continue_from is None:
+                can_continue_from = [n for n in nodes if (node1, n) in links and n != node2]
+            curr_exit_degrees = Dict(*[(n, 0) for n in nodes])
+            for n in nodes:
+                for m in self.__neighboring[n]:
+                    curr_exit_degrees[n] += (n, m) in links
+            nodes_with_degree_1 = []
+            for n in nodes:
+                if curr_exit_degrees[n] == 1:
+                    nodes_with_degree_1.append(n)
+            if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1):
+                return [], 0
+            if node2 is None:
+                if len(nodes) == 1:
+                    return nodes
+                for n2 in [n for n in nodes if n != node1]:
+                    res = self.Hamilton_walk(node1, n2)
+                    if res[0]:
+                        return res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
+            else:
+                if len(nodes) == 2 and (node1, node2) in links:
+                    return [node1, node2]
+            for n in sorted([n for n in can_continue_from], key=lambda x: self.__weights[(node1, n)]):
+                if node2 is None or n != node2:
+                    res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if (n, _n) in links and _n not in [node1, node2]], [n])
+                    if res[0]:
+                        return res_stack + res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
+            return [], 0
     def __add__(self, other):
         if isinstance(other, WeightedDirectedGraph):
             res = WeightedDirectedGraph(*self.nodes() + other.nodes())
@@ -1531,10 +1594,7 @@ class Tree:
             for j in range(i + 1, len(descendants)):
                 if descendants[i] == descendants[j]:
                     raise ValueError('Can\'t have a node twice in a tree!')
-        self.__hierarchy = Dict((self.__root, list(descendants)))
-        self.__nodes = [root, *descendants]
-        self.__links = [(root, n) for n in descendants]
-        self.__leaves = [*descendants] if descendants else [root]
+        self.__hierarchy, self.__nodes, self.__links, self.__leaves = Dict((self.__root, list(descendants))), [root, *descendants], [(root, n) for n in descendants], [*descendants] if descendants else [root]
     def root(self):
         return self.__root
     def nodes(self):
@@ -1549,10 +1609,7 @@ class Tree:
         return self.__hierarchy[node]
     def copy(self):
         res = Tree(self.root())
-        res.__hierarchy = self.hierarchy().copy()
-        res.__nodes = self.nodes().copy()
-        res.__links = self.links().copy()
-        res.__leaves = self.leaves().copy()
+        res.__hierarchy, res.__nodes, res.__links, res.__leaves = self.hierarchy().copy(), self.nodes().copy(), self.links().copy(), self.leaves().copy()
         return res
     def add_nodes_to(self, old: Node, node: Node, *rest: Node):
         if old not in self.__nodes:
@@ -1563,10 +1620,7 @@ class Tree:
             self.__hierarchy[old] = []
         for n in [node] + [*rest]:
             if n not in self.nodes():
-                self.__nodes.append(n)
-                self.__hierarchy[old].append(n)
-                self.__links.append((old, n))
-                self.__leaves.append(n)
+                self.__nodes.append(n), self.__hierarchy[old].append(n), self.__links.append((old, n)), self.__leaves.append(n)
     def remove_node(self, node: Node):
         if node not in self.__nodes:
             raise ValueError('Node not in tree!')
@@ -1615,7 +1669,7 @@ class Tree:
             if res:
                 return [curr_root] + res
     def __contains__(self, item):
-        return item in self.__nodes if isinstance(item, Node) else (item in self.__links if isinstance(item, tuple) else False)
+        return item in self.__nodes if isinstance(item, Node) else item in self.__links
     def __eq__(self, other):
         for n in self.nodes():
             if n not in other.nodes():
