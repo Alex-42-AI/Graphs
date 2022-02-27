@@ -872,7 +872,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
             else:
                 if len(nodes) == 2 and Link(node1, node2) in links:
                     return [node1, node2]
-            for n in sorted([n for n in can_continue_from], key=lambda x: self.__weights[Link(node1, n)]):
+            for n in sorted([n for n in can_continue_from], key=lambda x: self.__weights[Link(node1, x)]):
                 if node2 is None or n != node2:
                     res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]], [n])
                     if res[0]:
@@ -1533,7 +1533,7 @@ class WeightedDirectedGraph(DirectedGraph):
             else:
                 if len(nodes) == 2 and (node1, node2) in links:
                     return [node1, node2]
-            for n in sorted([n for n in can_continue_from], key=lambda x: self.__weights[(node1, n)]):
+            for n in sorted([n for n in can_continue_from], key=lambda x: self.__weights[(node1, x)]):
                 if node2 is None or n != node2:
                     res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if (n, _n) in links and _n not in [node1, node2]], [n])
                     if res[0]:
