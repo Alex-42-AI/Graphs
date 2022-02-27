@@ -59,5 +59,5 @@ Weighted graphs, in addition to their parental superclasses, have methods for:
 
 On top of that, the methods for adding and connecting nodes differ such, that instead of accepting a positive number of nodes, which a given node is going to be connected to,
 they accept a positive number of pairs, each of which contains a node and a real number, that is going to be the value of the link between the two nodes.
-Also, their methods for finding an Euler tour, an Euler walk, a Hamilton tour and a Hamilton walk also return the sum of the weights of the links in the paths found.
+Also, their methods for finding an Euler tour, an Euler walk, a Hamilton tour and a Hamilton walk also return the sum of the weights of the links in the paths found and the Hamilton methods look for the lightest routes possible.
 And finally, weighted graphs are represented with their nodes and their dictionary of the weights, rather than the nodes and the links alone.
