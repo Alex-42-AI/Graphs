@@ -611,23 +611,22 @@ class UndirectedGraph:
             nodes = self.__nodes
         if links is None:
             links = self.__links
-        if node1 in self.__nodes and (node2 is None or node2 in nodes):
+        if node1 in nodes and (node2 is None or node2 in nodes):
             if not self.connected(nodes, links):
                 return []
             if res_stack is None:
                 res_stack = [node1]
-            if can_continue_from is None:
-                can_continue_from = [n for n in nodes if Link(node1, n) in links and n != node2]
             curr_degrees = Dict(*[(n, 0) for n in nodes])
             for n in nodes:
                 for m in self.__neighboring[n]:
                     curr_degrees[n] += Link(n, m) in links
-            nodes_with_degree_1 = []
-            for n in nodes:
-                if curr_degrees[n] == 1:
-                    nodes_with_degree_1.append(n)
-            if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1):
+            if can_continue_from is None:
+                can_continue_from = list(sorted((n for n in nodes if Link(node1, n) in links and n != node2), key=lambda x: curr_degrees[x]))
+            nodes_with_degree_1 = list(filter(lambda x: curr_degrees[x] == 1, curr_degrees.keys()))
+            if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1) or len(nodes_with_degree_1) == 1 and node2 not in (nodes_with_degree_1[0], None):
                 return []
+            if len(nodes_with_degree_1) == 1:
+                node2 = nodes_with_degree_1[0]
             if node2 is None:
                 if len(nodes) == 1:
                     return nodes
@@ -640,7 +639,7 @@ class UndirectedGraph:
                     return [node1, node2]
             for n in can_continue_from:
                 if node2 is None or n != node2:
-                    res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]], [n])
+                    res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], list(sorted([_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]], key=lambda x: self.__degrees[x])), [n])
                     if res:
                         return res_stack + res
             return []
@@ -850,18 +849,17 @@ class WeightedUndirectedGraph(UndirectedGraph):
                 return []
             if res_stack is None:
                 res_stack = [node1]
-            if can_continue_from is None:
-                can_continue_from = [n for n in nodes if Link(node1, n) in links and n != node2]
             curr_degrees = Dict(*[(n, 0) for n in nodes])
             for n in nodes:
                 for m in self.__neighboring[n]:
                     curr_degrees[n] += Link(n, m) in links
-            nodes_with_degree_1 = []
-            for n in nodes:
-                if curr_degrees[n] == 1:
-                    nodes_with_degree_1.append(n)
-            if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1):
+            if can_continue_from is None:
+                can_continue_from = list(sorted((n for n in nodes if Link(node1, n) in links and n != node2), key=lambda x: curr_degrees[x]))
+            nodes_with_degree_1 = list(filter(lambda x: curr_degrees[x] == 1, curr_degrees.keys()))
+            if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1) or len(nodes_with_degree_1) == 1 and node2 not in (nodes_with_degree_1[0], None):
                 return [], 0
+            if len(nodes_with_degree_1) == 1:
+                node2 = nodes_with_degree_1[0]
             if node2 is None:
                 if len(nodes) == 1:
                     return nodes
@@ -963,16 +961,14 @@ class DirectedGraph:
             for n in points_to:
                 if n in self.__nodes and n not in res_points_to:
                     res_points_to.append(n)
-            self.__degrees[node], self.__neighboring[node] = [0, 0], []
+            self.__degrees[node], self.__neighboring[node] = [len(res_points_to), len(res_pointed_by)], []
             for n in res_pointed_by:
                 self.__links.append((n, node)), self.__neighboring[n].append(node)
                 self.__degrees[n][0] += 1
-                self.__degrees[node][1] += 1
                 self.__degrees_sum += 2
             for n in res_points_to:
                 self.__links.append((node, n)), self.__neighboring[node].append(n)
                 self.__degrees[n][1] += 1
-                self.__degrees[node][0] += 1
                 self.__degrees_sum += 2
             self.__nodes.append(node)
     def remove(self, *nodes: Node):
@@ -1301,17 +1297,30 @@ class DirectedGraph:
                     return res
         return []
     def Hamilton_walk(self, node1: Node, node2=None, nodes=None, links=None, can_continue_from=None, res_stack=None):
-        if node1 in self.__nodes and (node2 is None or node2 in self.__nodes):
-            if nodes is None:
-                nodes = self.__nodes
-            if links is None:
-                links = self.__links
+        if nodes is None:
+            nodes = self.__nodes
+        if links is None:
+            links = self.__links
+        if node1 in nodes and (node2 is None or node2 in nodes):
             if not self.connected(nodes, links):
                 return []
             if res_stack is None:
                 res_stack = [node1]
+            curr_degrees = Dict()
+            for n in nodes:
+                curr_degrees[n] = [0, 0]
+                for m in nodes:
+                    if (n, m) in links:
+                        curr_degrees[n][0] += 1
+                        curr_degrees[m][1] += 1
+                    elif (m, n) in links:
+                        curr_degrees[n][1] += 1
+                        curr_degrees[m][0] += 1
             if can_continue_from is None:
-                can_continue_from = [n for n in nodes if (node1, n) in links and n != node2]
+                can_continue_from = list(sorted((n for n in nodes if (node1, n) in links and n != node2), key=lambda x: (curr_degrees[x][1], curr_degrees[x][0])))
+            for n in nodes:
+                if not curr_degrees[n][0] and n != node2 or not curr_degrees[n][1] and n != node1:
+                    return []
             if node2 is None:
                 if len(nodes) == 1:
                     return nodes
@@ -1324,7 +1333,7 @@ class DirectedGraph:
                     return [node1, node2]
             for n in can_continue_from:
                 if node2 is None or n != node2:
-                    res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if (_n, n) in links and _n not in [node1, node2]], [n])
+                    res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], list(sorted([_n for _n in nodes if (_n, n) in links and _n not in [node1, node2]], key=lambda x: self.__degrees[x][0])), [n])
                     if res:
                         return res_stack + res
             return []
@@ -1493,7 +1502,7 @@ class WeightedDirectedGraph(DirectedGraph):
         res = super().Euler_walk(node1, node2, links)
         return res, sum(self.__weights[l] for l in res)
     def Hamilton_tour(self):
-        if any(self.__degrees[n] <= 1 for n in self.__nodes) or not self.connected():
+        if any(not self.__degrees[n][0] or not self.__degrees[n][1] for n in self.__nodes) or not self.connected():
             return [], 0
         for n1 in self.__nodes:
             for n2 in self.__neighboring[n1]:
@@ -1508,21 +1517,24 @@ class WeightedDirectedGraph(DirectedGraph):
             links = self.__links
         if node1 in self.__nodes and (node2 is None or node2 in nodes):
             if not self.connected(nodes, links):
-                return []
+                return [], 0
             if res_stack is None:
                 res_stack = [node1]
+            curr_degrees = Dict()
+            for n in nodes:
+                curr_degrees[n] = [0, 0]
+                for m in nodes:
+                    if (n, m) in links:
+                        curr_degrees[n][0] += 1
+                        curr_degrees[m][1] += 1
+                    elif (m, n) in links:
+                        curr_degrees[n][1] += 1
+                        curr_degrees[m][0] += 1
             if can_continue_from is None:
-                can_continue_from = [n for n in nodes if (node1, n) in links and n != node2]
-            curr_exit_degrees = Dict(*[(n, 0) for n in nodes])
+                can_continue_from = list(sorted((n for n in nodes if (node1, n) in links and n != node2), key=lambda x: (curr_degrees[x][1], curr_degrees[x][0])))
             for n in nodes:
-                for m in self.__neighboring[n]:
-                    curr_exit_degrees[n] += (n, m) in links
-            nodes_with_degree_1 = []
-            for n in nodes:
-                if curr_exit_degrees[n] == 1:
-                    nodes_with_degree_1.append(n)
-            if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1):
-                return [], 0
+                if not curr_degrees[n][0] and n != node2 or not curr_degrees[n][1] and n != node1:
+                    return []
             if node2 is None:
                 if len(nodes) == 1:
                     return nodes
@@ -1611,14 +1623,14 @@ class Tree:
         res = Tree(self.root())
         res.__hierarchy, res.__nodes, res.__links, res.__leaves = self.hierarchy().copy(), self.nodes().copy(), self.links().copy(), self.leaves().copy()
         return res
-    def add_nodes_to(self, old: Node, node: Node, *rest: Node):
+    def add_nodes_to(self, old: Node, new: Node, *rest: Node):
         if old not in self.__nodes:
             raise Exception('Node not found!')
         if old in self.__leaves:
             self.__leaves.remove(old)
         if self.__hierarchy[old] is None:
             self.__hierarchy[old] = []
-        for n in [node] + [*rest]:
+        for n in [new] + [*rest]:
             if n not in self.nodes():
                 self.__nodes.append(n), self.__hierarchy[old].append(n), self.__links.append((old, n)), self.__leaves.append(n)
     def remove_node(self, node: Node):
