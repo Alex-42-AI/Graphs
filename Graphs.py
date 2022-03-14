@@ -361,7 +361,7 @@ class UndirectedGraph:
         if Except is None:
             Except = []
         if nodes is None:
-            nodes = list(sorted(self.__nodes, key=lambda _n: self.__degrees[_n]))
+            nodes = sorted(self.__nodes, key=lambda _n: self.__degrees[_n])
         if not nodes:
             return curr
         if self.full(nodes, [l for l in self.__links if l[0] in nodes and l[1] in nodes]):
@@ -371,7 +371,7 @@ class UndirectedGraph:
             for m in nodes:
                 if Link(n, m) in self.__links:
                     curr_degrees[n] += 1
-        nodes = [nodes[0]] + list(sorted([_n for _n in nodes if _n != nodes[0]], key=lambda _n: curr_degrees[_n]))
+        nodes = [nodes[0]] + sorted([_n for _n in nodes if _n != nodes[0]], key=lambda _n: curr_degrees[_n])
         so_far.append(nodes[0])
         rest = [_n for _n in nodes if _n not in self.__neighboring[nodes[0]] and _n != nodes[0] and _n not in Except]
         if not rest:
@@ -605,7 +605,7 @@ class UndirectedGraph:
                 for m in self.__neighboring[n]:
                     curr_degrees[n] += Link(n, m) in links
             if can_continue_from is None:
-                can_continue_from = list(sorted((n for n in nodes if Link(node1, n) in links and n != node2), key=lambda x: curr_degrees[x]))
+                can_continue_from = sorted((n for n in nodes if Link(node1, n) in links and n != node2), key=lambda x: curr_degrees[x])
             nodes_with_degree_1 = list(filter(lambda x: curr_degrees[x] == 1, curr_degrees.keys()))
             if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1) or len(nodes_with_degree_1) == 1 and node2 not in (nodes_with_degree_1[0], None):
                 return []
@@ -617,7 +617,7 @@ class UndirectedGraph:
             elif len(nodes) == 2 and Link(node1, node2) in links:
                 return [node1, node2]
             for n in can_continue_from:
-                res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], list(sorted([_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]], key=lambda x: self.__degrees[x])), [n])
+                res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], sorted([_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]], key=lambda x: self.__degrees[x]), [n])
                 if res:
                     return res_stack + res
             return []
@@ -752,7 +752,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
                 res.append(curr.minimal_spanning_tree())
             return res
         res_links, node_groups = [], []
-        links = list(sorted((l for l in self.links()), key=lambda x: self.weights(x)))
+        links = sorted((l for l in self.links()), key=lambda x: self.weights(x))
         for l in links:
             somewhere1, somewhere2 = False, False
             for first_nodes in node_groups:
@@ -832,7 +832,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
                 for m in self.__neighboring[n]:
                     curr_degrees[n] += Link(n, m) in links
             if can_continue_from is None:
-                can_continue_from = list(sorted((n for n in nodes if Link(node1, n) in links and n != node2), key=lambda x: curr_degrees[x]))
+                can_continue_from = sorted((n for n in nodes if Link(node1, n) in links and n != node2), key=lambda x: curr_degrees[x])
             nodes_with_degree_1 = list(filter(lambda x: curr_degrees[x] == 1, curr_degrees.keys()))
             if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1) or len(nodes_with_degree_1) == 1 and node2 not in (nodes_with_degree_1[0], None):
                 return [], 0
@@ -1279,7 +1279,7 @@ class DirectedGraph:
                         curr_degrees[n][1] += 1
                         curr_degrees[m][0] += 1
             if can_continue_from is None:
-                can_continue_from = list(sorted((n for n in nodes if (node1, n) in links and n != node2), key=lambda x: (curr_degrees[x][1], curr_degrees[x][0])))
+                can_continue_from = sorted((n for n in nodes if (node1, n) in links and n != node2), key=lambda x: (curr_degrees[x][1], curr_degrees[x][0]))
             for n in nodes:
                 if not curr_degrees[n][0] and n != node2 or not curr_degrees[n][1] and n != node1:
                     return []
@@ -1289,7 +1289,7 @@ class DirectedGraph:
             elif len(nodes) == 2 and (node1, node2) in links:
                 return [node1, node2]
             for n in can_continue_from:
-                res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], list(sorted([_n for _n in nodes if (_n, n) in links and _n not in [node1, node2]], key=lambda x: self.__degrees[x][0])), [n])
+                res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], sorted([_n for _n in nodes if (_n, n) in links and _n not in [node1, node2]], key=lambda x: self.__degrees[x][0]), [n])
                 if res:
                     return res_stack + res
             return []
@@ -1356,7 +1356,7 @@ class WeightedDirectedGraph(DirectedGraph):
                 if len(p) < 2:
                     raise ValueError('Node-value pairs expected!')
             for v in [p[1] for p in pointed_by_values] + [p[1] for p in points_to_values]:
-                if type(v) not in [int, float]:
+                if not isinstance(v, (int, float)):
                     raise TypeError('Real numerical values expected!')
             pointed_by_res, points_to_res = [], []
             for n, v in pointed_by_values:
@@ -1385,7 +1385,7 @@ class WeightedDirectedGraph(DirectedGraph):
                 if len(p) != 2:
                     raise ValueError('Node-value pairs expected!')
             for v in [p[1] for p in [node2_and_value] + list(nodes_values)]:
-                if type(v) not in [int, float]:
+                if not isinstance(v, (int, float)):
                     raise TypeError('Real numerical values expected!')
             super().connect_to_from(node1, *[p[0] for p in [node2_and_value] + list(nodes_values)])
             for current, v in [node2_and_value] + list(nodes_values):
@@ -1399,7 +1399,7 @@ class WeightedDirectedGraph(DirectedGraph):
             if len(p) != 2:
                 raise ValueError('Node-value pairs expected!')
         for v in [p[1] for p in [node2_and_value] + list(nodes_values)]:
-            if type(v) not in [int, float]:
+            if not isinstance(v, (int, float)):
                 raise TypeError('Real numerical value expected!')
         super().connect_from_to(node1, *[p[0] for p in [node2_and_value] + list(nodes_values)])
         for current, v in [node2_and_value] + list(nodes_values):
@@ -1487,7 +1487,7 @@ class WeightedDirectedGraph(DirectedGraph):
                         curr_degrees[n][1] += 1
                         curr_degrees[m][0] += 1
             if can_continue_from is None:
-                can_continue_from = list(sorted((n for n in nodes if (node1, n) in links and n != node2), key=lambda x: (curr_degrees[x][1], curr_degrees[x][0])))
+                can_continue_from = sorted((n for n in nodes if (node1, n) in links and n != node2), key=lambda x: (curr_degrees[x][1], curr_degrees[x][0]))
             for n in nodes:
                 if not curr_degrees[n][0] and n != node2 or not curr_degrees[n][1] and n != node1:
                     return []
