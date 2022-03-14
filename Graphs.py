@@ -276,27 +276,16 @@ class UndirectedGraph:
             nodes = self.__nodes
         if links is None:
             links = self.__links
-        if node1 not in nodes or node2 not in nodes:
-            if node1 not in self.__nodes or node2 not in self.__nodes:
-                raise Exception('Unrecognized node(s).')
-            return False
         if not self.reachable(node1, node2, nodes, links):
             return False
         if not length:
             return (False, [])[node1 == node2]
-        if Link(node1, node2) in links and length == 1:
-            return [Link(node1, node2)]
-        All = []
-        for l in [l for l in links if node1 in l]:
-            sec = l.other(node1)
-            if sec in nodes:
-                if self.reachable(sec, node2, nodes, [L for L in links if L != l]):
-                    res = self.path_with_length(sec, node2, length - 1, [n for n in nodes if n != node1], [L for L in links if L != l])
-                    if isinstance(res, list):
-                        All.append([l] + res)
-        for path in All:
-            if len(path) == length:
-                return path
+        if length == 1:
+            return (False, [Link(node1, node2)])[Link(node1, node2) in links]
+        for n in [_n for _n in nodes if Link(node1, _n) in links]:
+            res = self.path_with_length(n, node2, length - 1, [_n for _n in nodes if _n != node1], [_l for _l in links if _l != Link(node1, n)])
+            if isinstance(res, list):
+                return [Link(node1, n)] + res
         return False
     def loop_with_length(self, length: int, nodes=None, links=None):
         if nodes is None:
@@ -459,10 +448,7 @@ class UndirectedGraph:
         while True:
             for m in so_far:
                 for n in self.neighboring(m):
-                    try:
-                        if len(paths[n]) > len(paths[m]) + 1:
-                            paths[n] = [Link(n, m)] + paths[m]
-                    except TypeError:
+                    if paths[n] is None:
                         paths[n] = [Link(n, m)] + paths[m]
                     if n == node1:
                         return paths[n]
@@ -625,23 +611,17 @@ class UndirectedGraph:
             nodes_with_degree_1 = list(filter(lambda x: curr_degrees[x] == 1, curr_degrees.keys()))
             if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1) or len(nodes_with_degree_1) == 1 and node2 not in (nodes_with_degree_1[0], None):
                 return []
-            if len(nodes_with_degree_1) == 1:
+            if len(nodes_with_degree_1) == 1 and node1 not in nodes_with_degree_1:
                 node2 = nodes_with_degree_1[0]
             if node2 is None:
                 if len(nodes) == 1:
                     return nodes
-                for n2 in [n for n in nodes if n != node1]:
-                    res = self.Hamilton_walk(node1, n2)
-                    if res:
-                        return res
-            else:
-                if len(nodes) == 2 and Link(node1, node2) in links:
-                    return [node1, node2]
+            elif len(nodes) == 2 and Link(node1, node2) in links:
+                return [node1, node2]
             for n in can_continue_from:
-                if node2 is None or n != node2:
-                    res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], list(sorted([_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]], key=lambda x: self.__degrees[x])), [n])
-                    if res:
-                        return res_stack + res
+                res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], list(sorted([_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]], key=lambda x: self.__degrees[x])), [n])
+                if res:
+                    return res_stack + res
             return []
         raise ValueError('Unrecognized nodes!')
     def __reversed__(self):
@@ -822,7 +802,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
                                 res_path = curr
                     return res_path
                 return DFS(node1, [[], 0], sum(sum(self.weights(n1, n2) for n2 in self.neighboring(n1) if self.weights(n1, n2) < 0) for n1 in self.nodes()) // 2)
-            return f'No path between {node1} and {node2}!'
+            return [[], 0]
         raise ValueError('Unrecognized node(s)!')
     def Euler_tour(self):
         res = super().Euler_tour()
@@ -846,7 +826,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
             links = self.__links
         if node1 in self.__nodes and (node2 is None or node2 in nodes):
             if not self.connected(nodes, links):
-                return []
+                return [], 0
             if res_stack is None:
                 res_stack = [node1]
             curr_degrees = Dict(*[(n, 0) for n in nodes])
@@ -858,23 +838,17 @@ class WeightedUndirectedGraph(UndirectedGraph):
             nodes_with_degree_1 = list(filter(lambda x: curr_degrees[x] == 1, curr_degrees.keys()))
             if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1) or len(nodes_with_degree_1) == 1 and node2 not in (nodes_with_degree_1[0], None):
                 return [], 0
-            if len(nodes_with_degree_1) == 1:
+            if len(nodes_with_degree_1) == 1 and node1 not in nodes_with_degree_1:
                 node2 = nodes_with_degree_1[0]
             if node2 is None:
                 if len(nodes) == 1:
-                    return nodes
-                for n2 in [n for n in nodes if n != node1]:
-                    res = self.Hamilton_walk(node1, n2)
-                    if res[0]:
-                        return res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
-            else:
-                if len(nodes) == 2 and Link(node1, node2) in links:
-                    return [node1, node2]
+                    return nodes, 0
+            elif len(nodes) == 2 and Link(node1, node2) in links:
+                return [node1, node2], self.__weights[Link(node1, node2)]
             for n in sorted([n for n in can_continue_from], key=lambda x: self.__weights[Link(node1, x)]):
-                if node2 is None or n != node2:
-                    res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]], [n])
-                    if res[0]:
-                        return res_stack + res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
+                res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if Link(_n, n) in links and _n not in [node1, node2]], [n])
+                if res[0]:
+                    return res_stack + res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
             return [], 0
         raise ValueError('Unrecognized nodes!')
     def __add__(self, other):
@@ -1107,19 +1081,12 @@ class DirectedGraph:
             return False
         if not length:
             return (False, [])[node1 == node2]
-        if (node1, node2) in links and length == 1:
-            return [(node1, node2)]
-        All = []
-        for l in [l for l in links if node1 == l[0]]:
-            sec = l[1]
-            if sec in nodes:
-                if self.reachable(sec, node2, nodes, [L for L in links if L != l]):
-                    res = self.path_with_length(sec, node2, length - 1, [n for n in nodes if n != node1], [l for l in links if node1 not in l])
-                    if res:
-                        All.append([l] + res)
-        for path in All:
-            if len(path) == length + 1:
-                return path
+        if length == 1:
+            return (False, [(node1, node2)])[(node1, node2) in links]
+        for n in [_n for _n in nodes if Link(node1, _n) in links]:
+            res = self.path_with_length(n, node2, length - 1, [_n for _n in nodes if _n != node1], [_l for _l in links if _l != (node1, n)])
+            if isinstance(res, list):
+                return [(node1, n)] + res
         return False
     def loop_with_length(self, length: int, nodes=None, links=None):
         if nodes is None:
@@ -1160,10 +1127,7 @@ class DirectedGraph:
         while True:
             for m in so_far:
                 for n in [n for n in self.__nodes if (n, m) in self.__links]:
-                    try:
-                        if len(paths[n]) > len(paths[m]) + 1:
-                            paths[n] = [(n, m)] + paths[m]
-                    except TypeError:
+                    if paths[n] is None:
                         paths[n] = [(n, m)] + paths[m]
                     if n == node1:
                         return paths[n]
@@ -1294,7 +1258,7 @@ class DirectedGraph:
             for n2 in [_n for _n in self.__nodes if (_n, n1) in self.__links]:
                 res = self.Hamilton_walk(n1, n2)
                 if res:
-                    return res
+                    return res + [n1]
         return []
     def Hamilton_walk(self, node1: Node, node2=None, nodes=None, links=None, can_continue_from=None, res_stack=None):
         if nodes is None:
@@ -1324,18 +1288,12 @@ class DirectedGraph:
             if node2 is None:
                 if len(nodes) == 1:
                     return nodes
-                for n2 in [n for n in nodes if n != node1]:
-                    res = self.Hamilton_walk(node1, n2)
-                    if res:
-                        return res
-            else:
-                if len(nodes) == 2 and (node1, node2) in links:
-                    return [node1, node2]
+            elif len(nodes) == 2 and (node1, node2) in links:
+                return [node1, node2]
             for n in can_continue_from:
-                if node2 is None or n != node2:
-                    res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], list(sorted([_n for _n in nodes if (_n, n) in links and _n not in [node1, node2]], key=lambda x: self.__degrees[x][0])), [n])
-                    if res:
-                        return res_stack + res
+                res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], list(sorted([_n for _n in nodes if (_n, n) in links and _n not in [node1, node2]], key=lambda x: self.__degrees[x][0])), [n])
+                if res:
+                    return res_stack + res
             return []
         raise ValueError('Unrecognized nodes!')
     def __reversed__(self):
@@ -1493,7 +1451,7 @@ class WeightedDirectedGraph(DirectedGraph):
                                 res_path = curr
                     return res_path
                 return DFS(node1, [[], 0], sum((sum(self.weights(n1, n2) for n2 in [n for n in self.nodes() if (n, n1) in self.links()] if self.weights(n1, n2) < 0)) for n1 in self.nodes()))
-            return f'No path between {node1} and {node2}!'
+            return [[], 0]
         raise ValueError('Unrecognized node(s)!')
     def Euler_tour(self):
         res = super().Euler_tour()
@@ -1537,19 +1495,13 @@ class WeightedDirectedGraph(DirectedGraph):
                     return []
             if node2 is None:
                 if len(nodes) == 1:
-                    return nodes
-                for n2 in [n for n in nodes if n != node1]:
-                    res = self.Hamilton_walk(node1, n2)
-                    if res[0]:
-                        return res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
-            else:
-                if len(nodes) == 2 and (node1, node2) in links:
-                    return [node1, node2]
+                    return nodes, 0
+            elif len(nodes) == 2 and (node1, node2) in links:
+                return [node1, node2], self.__weights[(node1, node2)]
             for n in sorted([n for n in can_continue_from], key=lambda x: self.__weights[(node1, x)]):
-                if node2 is None or n != node2:
-                    res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if (n, _n) in links and _n not in [node1, node2]], [n])
-                    if res[0]:
-                        return res_stack + res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
+                res = self.Hamilton_walk(n, node2, [_n for _n in nodes if _n != node1], [l for l in links if node1 not in l], [_n for _n in nodes if (n, _n) in links and _n not in [node1, node2]], [n])
+                if res[0]:
+                    return res_stack + res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
             return [], 0
     def __add__(self, other):
         if isinstance(other, WeightedDirectedGraph):
