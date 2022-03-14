@@ -21,10 +21,8 @@ class Dict:
     def pop(self, item):
         for i, p in enumerate(self.__items):
             if item == p[0]:
-                self.__items.remove(p), self.__keys.remove(item)
-                self.__values.pop(i)
+                self.__items.remove(p), self.__keys.remove(item), self.__values.pop(i)
                 return p[1]
-        raise KeyError(item)
     def popitem(self):
         if self.items():
             res = self.__items[-1]
