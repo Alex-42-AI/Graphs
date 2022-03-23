@@ -625,7 +625,7 @@ class UndirectedGraph:
     def __reversed__(self):
         return self.complementary()
     def __contains__(self, item):
-        return item in self.__nodes if isinstance(item, Node) else item in self.__links
+        return item in self.__nodes + self.__links
     def __add__(self, other):
         if isinstance(other, UndirectedGraph):
             res = self.copy()
@@ -1297,7 +1297,7 @@ class DirectedGraph:
     def __reversed__(self):
         return self.complementary()
     def __contains__(self, item):
-        return item in self.__nodes if isinstance(item, Node) else item in self.__links
+        return item in self.__nodes + self.__links
     def __add__(self, other):
         if isinstance(other, DirectedGraph):
             res = self.copy()
@@ -1631,7 +1631,7 @@ class Tree:
             if res:
                 return [curr_root] + res
     def __contains__(self, item):
-        return item in self.__nodes if isinstance(item, Node) else item in self.__links
+        return item in self.__nodes + self.__links
     def __eq__(self, other):
         for n in self.nodes():
             if n not in other.nodes():
