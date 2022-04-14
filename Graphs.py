@@ -631,7 +631,7 @@ class UndirectedGraph:
                         this_nodes_degrees[d].append(n)
                     if other.__degrees[n] == d:
                         other_nodes_degrees[d].append(n)
-            return True  # not certain
+            return True  # not always
     def __reversed__(self):
         return self.complementary()
     def __contains__(self, item):
