@@ -395,7 +395,17 @@ class UndirectedGraph:
                     res_graph.connect(n, m)
         return res_graph.chromatic_number_nodes()
     def planar(self):
-        return (2 + bool(self.loop_with_length(3))) * (len(self.__nodes) - 2) >= len(self.__links)
+        if self.connected():
+            return (2 + bool(self.loop_with_length(3))) * (len(self.__nodes) - 2) >= len(self.__links)
+        for comp in self.connection_components():
+            curr = UndirectedGraph(*comp)
+            for n in comp:
+                for m in comp:
+                    if Link(n, m) in self.__links:
+                        curr.connect(n, m)
+            if not curr.planar():
+                return False
+        return True
     def faces(self):
         if self.planar():
             if self.connected():
