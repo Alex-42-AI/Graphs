@@ -112,7 +112,7 @@ class Link:
 class UndirectedGraph:
     def __init__(self, start: Node, *rest: Node):
         self.__nodes = []
-        for n in tuple([start]) + rest:
+        for n in (start,) + rest:
             if n not in self.__nodes:
                 self.__nodes.append(n)
         self.__links, self.__neighboring, self.__degrees, self.__degrees_sum = [], Dict(*[(n, []) for n in self.__nodes]), Dict(*[(n, 0) for n in self.__nodes]), 0
@@ -326,7 +326,7 @@ class UndirectedGraph:
                 if not exists:
                     result.append(list(p))
         return result
-    def bridge_nodes(self):
+    def cut_nodes(self):
         c, bridges = len(self.connection_components()), []
         for n in self.__nodes:
             if len(self.connection_components([_n for _n in self.__nodes if _n != n], [l for l in self.__links if n not in l])) > c:
@@ -394,37 +394,21 @@ class UndirectedGraph:
                 if m != n and (n.value()[0] in m.value() or n.value()[1] in m.value()):
                     res_graph.connect(n, m)
         return res_graph.chromatic_number_nodes()
-    def holes_in_surface(self):
-        if self.connected():
-            holes, v = 0, 2 + bool(self.loop_with_length(3))
-            while True:
-                if v * (len(self.__nodes) - 2) >= len(self.__links):
-                    return holes
-                holes += 1
-                v += 2
-        Max = 0
-        for comp in self.connection_components():
-            curr = UndirectedGraph(*comp)
-            for n in curr.nodes():
-                for m in curr.nodes():
-                    if Link(m, n) in self.__links:
-                        curr.connect(n, m)
-            Max = max(Max, curr.holes_in_surface())
-        return Max
     def planar(self):
-        return not self.holes_in_surface()
+        return (2 + bool(self.loop_with_length(3))) * (len(self.__nodes) - 2) >= len(self.__links)
     def faces(self):
-        if self.connected():
-            return len(self.__links) - len(self.__nodes) + 2 - 2 * self.holes_in_surface()
-        total = 1
-        for comp in self.connection_components():
-            curr = UndirectedGraph(*comp)
-            for n in curr.nodes():
-                for m in curr.nodes():
-                    if Link(m, n) in self.__links:
-                        curr.connect(n, m)
-            total += curr.faces() - 1
-        return total
+        if self.planar():
+            if self.connected():
+                return len(self.__links) - len(self.__nodes) + 2
+            total = 1
+            for comp in self.connection_components():
+                curr = UndirectedGraph(*comp)
+                for n in curr.nodes():
+                    for m in curr.nodes():
+                        if Link(m, n) in self.__links:
+                            curr.connect(n, m)
+                total += curr.faces() - 1
+            return total
     def full(self, nodes=None, links=None):
         if nodes is None:
             nodes = self.__nodes
@@ -622,6 +606,32 @@ class UndirectedGraph:
                     return res_stack + res
             return []
         raise ValueError('Unrecognized nodes!')
+    def isomorphic(self, other):
+        if isinstance(other, UndirectedGraph):
+            if self.__degrees_sum != other.__degrees_sum:
+                return False
+            if len(self.__nodes) != len(other.__nodes) or len(self.__links) != len(other.__links):
+                return False
+            this_degrees, other_degrees = dict(), dict()
+            for d in self.__degrees.values():
+                if d in this_degrees:
+                    this_degrees[d] += 1
+                else:
+                    this_degrees[d] = 1
+                if d in other_degrees:
+                    other_degrees[d] += 1
+                else:
+                    other_degrees[d] = 1
+            if this_degrees != other_degrees:
+                return False
+            this_nodes_degrees, other_nodes_degrees = {d: [] for d in this_degrees.keys()}, {d: [] for d in other_degrees.keys()}
+            for d in this_degrees.keys():
+                for n in self.__nodes:
+                    if self.__degrees[n] == d:
+                        this_nodes_degrees[d].append(n)
+                    if other.__degrees[n] == d:
+                        other_nodes_degrees[d].append(n)
+            return True  # not certain
     def __reversed__(self):
         return self.complementary()
     def __contains__(self, item):
@@ -898,7 +908,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
 class DirectedGraph:
     def __init__(self, start: Node, *rest: Node):
         self.__nodes = []
-        for n in tuple([start]) + rest:
+        for n in (start,) + rest:
             if n not in self.__nodes:
                 self.__nodes.append(n)
         self.__links, self.__degrees_sum, self.__degrees, self.__neighboring = [], 0, Dict(*[(n, [0, 0]) for n in self.__nodes]), Dict(*[(n, []) for n in self.__nodes])
@@ -988,6 +998,13 @@ class DirectedGraph:
             for j in range(i + 1, len(self.__nodes)):
                 if (n, self.__nodes[j]) not in self.__links:
                     res.connect_from_to(n, self.__nodes[j])
+        return res
+    def transposed(self):
+        res = DirectedGraph(*self.__nodes)
+        for n in self.__nodes:
+            for m in self.__nodes:
+                if (m, n) in self.__links:
+                    res.connect_from_to(n, m)
         return res
     def copy(self):
         res = DirectedGraph(*self.__nodes)
@@ -1097,7 +1114,7 @@ class DirectedGraph:
                 if isinstance(res, list):
                     return [l] + res
         return False
-    def bridge_nodes(self):
+    def cut_nodes(self):
         c, bridges = len(self.connection_components()), []
         for n in self.__nodes:
             if len(self.connection_components([_n for _n in self.__nodes if _n != n], [l for l in self.__links if n not in l])) > c:
