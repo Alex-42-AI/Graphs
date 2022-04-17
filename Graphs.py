@@ -182,7 +182,8 @@ class UndirectedGraph:
         return res
     def copy(self):
         res = UndirectedGraph(*self.__nodes)
-        res.__links, res.__neighboring, res.__degrees, res.__degrees_sum = self.__links.copy(), self.__neighboring.copy(), self.__degrees.copy(), self.__degrees_sum
+        for n in self.__nodes:
+            res.connect(n, *self.neighboring(n))
         return res
     def connection_components(self, nodes=None, links=None):
         if nodes is None:
@@ -622,8 +623,9 @@ class UndirectedGraph:
                 return False
             if len(self.__nodes) != len(other.__nodes) or len(self.__links) != len(other.__links):
                 return False
+            this_copy = self.copy()
             this_degrees, other_degrees = dict(), dict()
-            for d in self.__degrees.values():
+            for d in this_copy.__degrees.values():
                 if d in this_degrees:
                     this_degrees[d] += 1
                 else:
@@ -636,12 +638,33 @@ class UndirectedGraph:
                 return False
             this_nodes_degrees, other_nodes_degrees = {d: [] for d in this_degrees.keys()}, {d: [] for d in other_degrees.keys()}
             for d in this_degrees.keys():
-                for n in self.__nodes:
-                    if self.__degrees[n] == d:
+                for n in this_copy.__nodes:
+                    if this_copy.__degrees[n] == d:
                         this_nodes_degrees[d].append(n)
                     if other.__degrees[n] == d:
                         other_nodes_degrees[d].append(n)
-            return True  # not always
+            this_nodes_degrees = dict(sorted(this_nodes_degrees.items(), key=lambda _p: len(_p[1])))
+            other_nodes_degrees = dict(sorted(other_nodes_degrees.items(), key=lambda _p: len(_p[1])))
+            this_nodes_list, other_nodes_list = list(this_nodes_degrees.values()), list(other_nodes_degrees.values())
+            from itertools import permutations
+            _permutations = [list(permutations(this_nodes)) for this_nodes in this_nodes_list]
+            from Personal.MathFormulas import cartesian_product
+            possibilities = cartesian_product(*_permutations)
+            for possibility in possibilities:
+                map_dict = Dict()
+                for i, group in enumerate(possibility):
+                    map_dict += Dict(*zip(group, other_nodes_list[i]))
+                possible = True
+                for n, v0 in map_dict.items():
+                    for m, v1 in map_dict.items():
+                        if (m in this_copy.neighboring(n)) != (v1 in other.neighboring(v0)):
+                            possible = False
+                            break
+                    if not possible:
+                        break
+                if possible:
+                    return True
+            return False
     def __reversed__(self):
         return self.complementary()
     def __contains__(self, item):
