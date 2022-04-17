@@ -1,3 +1,16 @@
+def cartesian_product(list0: list, *rest: list):
+    if not rest:
+        return [[l] for l in list0]
+    res = []
+    if len(rest) == 1:
+        for el0 in list0:
+            for el1 in rest[0]:
+                res.append([el0, el1])
+        return res
+    for el in list0:
+        for n_pair in cartesian_product(*rest):
+            res.append([el] + n_pair)
+    return res
 class Dict:
     def __init__(self, *args: tuple):
         self.__items = []
@@ -49,7 +62,7 @@ class Dict:
             self.__items.append((key, value)), self.__keys.append(key), self.__values.append(value)
     def __add__(self, other):
         if isinstance(other, (dict, Dict)):
-            return Dict(*(self.items() + other.items()))
+            return Dict(*(self.items() + list(other.items())))
         raise TypeError(f'Addition not defined between type Dict and type {type(other)}!')
     def __eq__(self, other):
         if isinstance(other, Dict):
@@ -260,6 +273,8 @@ class UndirectedGraph:
             links = self.__links
         if node1 not in nodes or node2 not in nodes:
             raise Exception('Unrecognized node(s).')
+        if node1 == node2:
+            return True
         total, so_far = [node1], [node1]
         while True:
             for m in so_far:
@@ -397,6 +412,8 @@ class UndirectedGraph:
                     res_graph.connect(n, m)
         return res_graph.chromatic_number_nodes()
     def planar(self):
+        if len(self.__nodes) < 2 + bool(self.__links):
+            return True
         if self.connected():
             return (2 + bool(self.loop_with_length(3))) * (len(self.__nodes) - 2) >= len(self.__links)
         for comp in self.connection_components():
@@ -619,14 +636,13 @@ class UndirectedGraph:
             return []
         raise ValueError('Unrecognized nodes!')
     def isomorphic(self, other):
-        if isinstance(other, UndirectedGraph):
+        if type(other) == UndirectedGraph:
             if self.__degrees_sum != other.__degrees_sum:
                 return False
             if len(self.__nodes) != len(other.__nodes) or len(self.__links) != len(other.__links):
                 return False
-            this_copy = self.copy()
             this_degrees, other_degrees = dict(), dict()
-            for d in this_copy.__degrees.values():
+            for d in self.__degrees.values():
                 if d in this_degrees:
                     this_degrees[d] += 1
                 else:
@@ -639,8 +655,8 @@ class UndirectedGraph:
                 return False
             this_nodes_degrees, other_nodes_degrees = {d: [] for d in this_degrees.keys()}, {d: [] for d in other_degrees.keys()}
             for d in this_degrees.keys():
-                for n in this_copy.__nodes:
-                    if this_copy.__degrees[n] == d:
+                for n in self.__nodes:
+                    if self.__degrees[n] == d:
                         this_nodes_degrees[d].append(n)
                     if other.__degrees[n] == d:
                         other_nodes_degrees[d].append(n)
@@ -649,7 +665,6 @@ class UndirectedGraph:
             this_nodes_list, other_nodes_list = list(this_nodes_degrees.values()), list(other_nodes_degrees.values())
             from itertools import permutations
             _permutations = [list(permutations(this_nodes)) for this_nodes in this_nodes_list]
-            from Personal.MathFormulas import cartesian_product
             possibilities = cartesian_product(*_permutations)
             for possibility in possibilities:
                 map_dict = Dict()
@@ -658,7 +673,7 @@ class UndirectedGraph:
                 possible = True
                 for n, v0 in map_dict.items():
                     for m, v1 in map_dict.items():
-                        if (m in this_copy.neighboring(n)) != (v1 in other.neighboring(v0)):
+                        if (m in self.neighboring(n)) != (v1 in other.neighboring(v0)):
                             possible = False
                             break
                     if not possible:
@@ -666,6 +681,7 @@ class UndirectedGraph:
                 if possible:
                     return True
             return False
+        return False
     def __reversed__(self):
         return self.complementary()
     def __contains__(self, item):
@@ -893,6 +909,53 @@ class WeightedUndirectedGraph(UndirectedGraph):
                     return res_stack + res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
             return [], 0
         raise ValueError('Unrecognized nodes!')
+    def isomorphic(self, other):
+        if type(other) == WeightedUndirectedGraph:
+            if self.__degrees_sum != other.degrees_sum():
+                return False
+            if len(self.__nodes) != len(other.nodes()) or len(self.__links) != len(other.links()):
+                return False
+            this_degrees, other_degrees = dict(), dict()
+            for d in self.__degrees.values():
+                if d in this_degrees:
+                    this_degrees[d] += 1
+                else:
+                    this_degrees[d] = 1
+                if d in other_degrees:
+                    other_degrees[d] += 1
+                else:
+                    other_degrees[d] = 1
+            if this_degrees != other_degrees:
+                return False
+            this_nodes_degrees, other_nodes_degrees = {d: [] for d in this_degrees.keys()}, {d: [] for d in other_degrees.keys()}
+            for d in this_degrees.keys():
+                for n in self.__nodes:
+                    if self.__degrees[n] == d:
+                        this_nodes_degrees[d].append(n)
+                    if other.degrees(n) == d:
+                        other_nodes_degrees[d].append(n)
+            this_nodes_degrees = dict(sorted(this_nodes_degrees.items(), key=lambda _p: len(_p[1])))
+            other_nodes_degrees = dict(sorted(other_nodes_degrees.items(), key=lambda _p: len(_p[1])))
+            this_nodes_list, other_nodes_list = list(this_nodes_degrees.values()), list(other_nodes_degrees.values())
+            from itertools import permutations
+            _permutations = [list(permutations(this_nodes)) for this_nodes in this_nodes_list]
+            possibilities = cartesian_product(*_permutations)
+            for possibility in possibilities:
+                map_dict = Dict()
+                for i, group in enumerate(possibility):
+                    map_dict += Dict(*zip(group, other_nodes_list[i]))
+                possible = True
+                for n, v0 in map_dict.items():
+                    for m, v1 in map_dict.items():
+                        if self.__weights[Link(n, m)] != other.weights(Link(v0, v1)):
+                            possible = False
+                            break
+                    if not possible:
+                        break
+                if possible:
+                    return True
+            return False
+        return False
     def __add__(self, other):
         if isinstance(other, WeightedUndirectedGraph):
             res = WeightedUndirectedGraph(*self.nodes() + other.nodes())
@@ -1347,6 +1410,53 @@ class DirectedGraph:
                     return res_stack + res
             return []
         raise ValueError('Unrecognized nodes!')
+    def isomorphic(self, other):
+        if type(other) == DirectedGraph:
+            if self.__degrees_sum != other.__degrees_sum:
+                return False
+            if len(self.__nodes) != len(other.__nodes) or len(self.__links) != len(other.__links):
+                return False
+            this_degrees, other_degrees = Dict(), Dict()
+            for d in self.__degrees.values():
+                if d in this_degrees:
+                    this_degrees[d] += 1
+                else:
+                    this_degrees[d] = 1
+                if d in other_degrees:
+                    other_degrees[d] += 1
+                else:
+                    other_degrees[d] = 1
+            if this_degrees != other_degrees:
+                return False
+            this_nodes_degrees, other_nodes_degrees = Dict(*[(d, []) for d in this_degrees.keys()]), Dict(*[(d, []) for d in other_degrees.keys()])
+            for d in this_degrees.keys():
+                for n in self.__nodes:
+                    if self.__degrees[n] == d:
+                        this_nodes_degrees[d].append(n)
+                    if other.__degrees[n] == d:
+                        other_nodes_degrees[d].append(n)
+            this_nodes_degrees = dict(sorted(this_nodes_degrees.items(), key=lambda _p: len(_p[1])))
+            other_nodes_degrees = dict(sorted(other_nodes_degrees.items(), key=lambda _p: len(_p[1])))
+            this_nodes_list, other_nodes_list = list(this_nodes_degrees.values()), list(other_nodes_degrees.values())
+            from itertools import permutations
+            _permutations = [list(permutations(this_nodes)) for this_nodes in this_nodes_list]
+            possibilities = cartesian_product(*_permutations)
+            for possibility in possibilities:
+                map_dict = Dict()
+                for i, group in enumerate(possibility):
+                    map_dict += Dict(*zip(group, other_nodes_list[i]))
+                possible = True
+                for n, v0 in map_dict.items():
+                    for m, v1 in map_dict.items():
+                        if (m in self.neighboring(n)) != (v1 in other.neighboring(v0)):
+                            possible = False
+                            break
+                    if not possible:
+                        break
+                if possible:
+                    return True
+            return False
+        return False
     def __reversed__(self):
         return self.complementary()
     def __contains__(self, item):
@@ -1554,6 +1664,53 @@ class WeightedDirectedGraph(DirectedGraph):
                 if res[0]:
                     return res_stack + res[0], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1))
             return [], 0
+    def isomorphic(self, other):
+        if type(other) == DirectedGraph:
+            if self.__degrees_sum != other.__degrees_sum:
+                return False
+            if len(self.__nodes) != len(other.__nodes) or len(self.__links) != len(other.__links):
+                return False
+            this_degrees, other_degrees = Dict(), Dict()
+            for d in self.__degrees.values():
+                if d in this_degrees:
+                    this_degrees[d] += 1
+                else:
+                    this_degrees[d] = 1
+                if d in other_degrees:
+                    other_degrees[d] += 1
+                else:
+                    other_degrees[d] = 1
+            if this_degrees != other_degrees:
+                return False
+            this_nodes_degrees, other_nodes_degrees = Dict(*[(d, []) for d in this_degrees.keys()]), Dict(*[(d, []) for d in other_degrees.keys()])
+            for d in this_degrees.keys():
+                for n in self.__nodes:
+                    if self.__degrees[n] == d:
+                        this_nodes_degrees[d].append(n)
+                    if other.__degrees[n] == d:
+                        other_nodes_degrees[d].append(n)
+            this_nodes_degrees = dict(sorted(this_nodes_degrees.items(), key=lambda _p: len(_p[1])))
+            other_nodes_degrees = dict(sorted(other_nodes_degrees.items(), key=lambda _p: len(_p[1])))
+            this_nodes_list, other_nodes_list = list(this_nodes_degrees.values()), list(other_nodes_degrees.values())
+            from itertools import permutations
+            _permutations = [list(permutations(this_nodes)) for this_nodes in this_nodes_list]
+            possibilities = cartesian_product(*_permutations)
+            for possibility in possibilities:
+                map_dict = Dict()
+                for i, group in enumerate(possibility):
+                    map_dict += Dict(*zip(group, other_nodes_list[i]))
+                possible = True
+                for n, v0 in map_dict.items():
+                    for m, v1 in map_dict.items():
+                        if self.__weights[(n, m)] != other.weights((v0, v1)):
+                            possible = False
+                            break
+                    if not possible:
+                        break
+                if possible:
+                    return True
+            return False
+        return False
     def __add__(self, other):
         if isinstance(other, WeightedDirectedGraph):
             res = WeightedDirectedGraph(*self.nodes() + other.nodes())
