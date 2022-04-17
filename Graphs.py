@@ -183,7 +183,8 @@ class UndirectedGraph:
     def copy(self):
         res = UndirectedGraph(*self.__nodes)
         for n in self.__nodes:
-            res.connect(n, *self.neighboring(n))
+            if self.degrees(n):
+                res.connect(n, *self.neighboring(n))
         return res
     def connection_components(self, nodes=None, links=None):
         if nodes is None:
@@ -1041,7 +1042,9 @@ class DirectedGraph:
         return res
     def copy(self):
         res = DirectedGraph(*self.__nodes)
-        res.__links, res.__degrees, res.__degrees_sum = self.__links.copy(), self.__degrees.copy(), self.__degrees_sum
+        for n in self.__nodes:
+            if self.degrees(n)[0]:
+                res.connect_from_to(n, *self.neighboring(n))
         return res
     def connected(self, nodes=None, links=None):
         if nodes is None:
