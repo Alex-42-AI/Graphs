@@ -124,7 +124,7 @@ class Node:
         return str(self)
 
 
-class Link:
+class Link:  # defining undirected link
     def __init__(self, node1: Node, node2: Node):
         self.__node1, self.__node2 = node1, node2
 
@@ -165,8 +165,10 @@ class UndirectedGraph:
         for n in (start,) + rest:
             if n not in self.__nodes:
                 self.__nodes.append(n)
-        self.__links, self.__neighboring, self.__degrees, self.__degrees_sum = [], Dict(
-            *[(n, []) for n in self.__nodes]), Dict(*[(n, 0) for n in self.__nodes]), 0
+        self.__links = []
+        self.__neighboring = Dict(*[(n, []) for n in self.__nodes])
+        self.__degrees = Dict(*[(n, 0) for n in self.__nodes])
+        self.__degrees_sum = 0
 
     def nodes(self):
         return self.__nodes
@@ -199,7 +201,7 @@ class UndirectedGraph:
         if node not in self.__nodes:
             res = []
             for c in current_nodes:
-                if c in self.__nodes and c not in res:
+                if c in self.__nodes and c not in res:  # filtering out repeating nodes or nodes, not present in the graph
                     res.append(c)
             self.__degrees[node] = len(current_nodes)
             self.__degrees_sum += 2 * len(current_nodes)
@@ -224,8 +226,9 @@ class UndirectedGraph:
                 self.__degrees[node1] += 1
                 self.__degrees[current] += 1
                 self.__degrees_sum += 2
-                self.__neighboring[node1].append(current), self.__neighboring[current].append(
-                    node1), self.__links.append(Link(node1, current))
+                self.__neighboring[node1].append(current)
+                self.__neighboring[current].append(node1)
+                self.__links.append(Link(node1, current))
 
     def disconnect(self, node1: Node, node2: Node, *rest: Node):
         for n in [node2] + [*rest]:
@@ -233,8 +236,9 @@ class UndirectedGraph:
                 self.__degrees[node1] -= 1
                 self.__degrees[n] -= 1
                 self.__degrees_sum -= 2
-                self.__neighboring[node1].remove(n), self.__neighboring[n].remove(node1), self.__links.remove(
-                    Link(node1, n))
+                self.__neighboring[node1].remove(n)
+                self.__neighboring[n].remove(node1)
+                self.__links.remove(Link(node1, n))
 
     def complementary(self):
         res = UndirectedGraph(*self.__nodes)
@@ -354,7 +358,8 @@ class UndirectedGraph:
         if length == 1:
             return (False, [Link(node1, node2)])[Link(node1, node2) in links]
         for n in [_n for _n in nodes if Link(node1, _n) in links]:
-            res = self.path_with_length(n, node2, length - 1, [_n for _n in nodes if _n != node1],
+            res = self.path_with_length(n, node2, length - 1,
+                                        [_n for _n in nodes if _n != node1],
                                         [_l for _l in links if _l != Link(node1, n)])
             if isinstance(res, list):
                 return [Link(node1, n)] + res
