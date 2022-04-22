@@ -1968,8 +1968,19 @@ class Tree:
         return self.__hierarchy[node]
 
     def copy(self):
-        res = Tree(self.root())
-        res.__hierarchy, res.__nodes, res.__links, res.__leaves = self.hierarchy().copy(), self.nodes().copy(), self.links().copy(), self.leaves().copy()
+        res = Tree(self.root(), *self.descendants(self.__root))
+        curr = self.descendants(res.__root)
+        while True:
+            new = []
+            for n in curr:
+                res_descendants = self.descendants(n)
+                if res_descendants:
+                    res.add_nodes_to(n, *res_descendants)
+                new += self.descendants(n)
+            if new:
+                curr = new
+            else:
+                break
         return res
 
     def add_nodes_to(self, old: Node, new: Node, *rest: Node):
@@ -2095,7 +2106,7 @@ class Tree:
             return True
 
     def __str__(self):
-        return '\n'.join(str(k) + ' -- ' + str(v) for k, v in self.__hierarchy.items())
+        return '\n'.join(str(k) + ' -- ' + str(v) for k, v in filter(lambda p: p[1], self.__hierarchy.items()))
 
     def __repr__(self):
         return str(self)
