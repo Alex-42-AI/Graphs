@@ -1992,6 +1992,24 @@ class Tree:
             if n not in self.nodes():
                 self.__nodes.append(n), self.__hierarchy[old].append(n), self.__links.append((old, n)), self.__leaves.append(n)
                 self.__hierarchy[n] = []
+    
+    def extend_tree_at(self, node: Node, tree):
+        if node not in self.__nodes:
+            raise Exception('Node not found!')
+        if not isinstance(tree, Tree):
+            raise TypeError('Tree expected!')
+        self.add_nodes_to(node, tree.__root)
+        current = [tree.__root]
+        while True:
+            new = []
+            for c in current:
+                res = list(filter(lambda n: n not in self.__nodes, tree.descendants(c)))
+                if res:
+                    self.add_nodes_to(c, *res)
+                new += tree.descendants(c)
+            if not new:
+                break
+            current = new.copy()
 
     def remove_node(self, node: Node):
         if node not in self.__nodes:
