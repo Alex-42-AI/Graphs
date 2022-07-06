@@ -687,7 +687,7 @@ class UndirectedGraph:
             if can_continue_from is None:
                 can_continue_from = sorted((n for n in nodes if Link(node1, n) in links and n != node2), key=lambda x: curr_degrees[x])
             nodes_with_degree_1 = list(filter(lambda x: curr_degrees[x] == 1, curr_degrees.keys()))
-            if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1) or len(nodes_with_degree_1) == 1 and node2 not in (nodes_with_degree_1[0], None):
+            if len(nodes_with_degree_1) > (node1 in nodes_with_degree_1) + (node2 in nodes_with_degree_1) or len(nodes_with_degree_1) == 1 and nodes_with_degree_1[0] not in (node1, node2):
                 return False
             if len(nodes_with_degree_1) == 1 and node1 not in nodes_with_degree_1:
                 node2 = nodes_with_degree_1[0]
@@ -987,7 +987,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
             if can_continue_from is None:
                 can_continue_from = sorted((n for n in nodes if Link(node1, n) in links and n != node2), key=lambda x: curr_degrees[x])
             nodes_with_degree_1 = list(filter(lambda x: curr_degrees[x] == 1, curr_degrees.keys()))
-            if len(nodes_with_degree_1) > 1 + (node1 in nodes_with_degree_1) or len(nodes_with_degree_1) == 1 and node2 not in (nodes_with_degree_1[0], None):
+            if len(nodes_with_degree_1) > (node1 in nodes_with_degree_1) + (node2 in nodes_with_degree_1) or len(nodes_with_degree_1) == 1 and nodes_with_degree_1[0] not in (node1, node2):
                 return False
             if len(nodes_with_degree_1) == 1 and node1 not in nodes_with_degree_1:
                 node2 = nodes_with_degree_1[0]
