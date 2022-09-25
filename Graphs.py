@@ -195,8 +195,8 @@ class UndirectedGraph:
             for c in current_nodes:
                 if c in self.__nodes and c not in res:
                     res.append(c)
-            self.__degrees[node] = len(current_nodes)
-            self.__degrees_sum += 2 * len(current_nodes)
+            self.__degrees[node] = len(res)
+            self.__degrees_sum += 2 * len(res)
             for old_node in res:
                 self.__degrees[old_node] += 1
                 self.__links.append(Link(old_node, node)), self.__neighboring[old_node].append(node)
