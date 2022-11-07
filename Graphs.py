@@ -1184,7 +1184,7 @@ class DirectedGraph:
                 self.__nodes.remove(node), self.__neighboring.pop(node), self.__degrees.pop(node)
 
     def connect_to_from(self, node1: Node, node2: Node, *rest: Node):
-        if node1 not in self.__nodes:
+        if node1 in self.__nodes:
             for current in [node2] + list(rest):
                 if (current, node1) not in self.__links and node1 != current and current in self.__nodes:
                     self.__links.append((current, node1)), self.__neighboring[current].append(node1)
@@ -1193,7 +1193,7 @@ class DirectedGraph:
                     self.__degrees_sum += 2
 
     def connect_from_to(self, node1: Node, node2: Node, *rest: Node):
-        if node1 not in self.__nodes:
+        if node1 in self.__nodes:
             for current in [node2] + list(rest):
                 if (node1, current) not in self.__links and node1 != current and current in self.__nodes:
                     self.__links.append((node1, current)), self.__neighboring[node1].append(current)
