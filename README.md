@@ -1,7 +1,7 @@
 # Graphs
 A graph is a data structure, consisting of nodes and links between some of them. There are different types of graphs, such as directed/undirected, weighted/unweighted and multigraphs.
 
-This project is an implementation of an unweighted undirected graph, a weighted undirected graph, an unwaighted directed graph and a weighted directed graph, as well as of a tree.
+This project is an implementation of an unweighted undirected graph, a weighted undirected graph, an unweighted directed graph and a weighted directed graph, as well as of a tree.
 
 Regardless of their differences, all graph classes have methods for:
 1) returning a list of the nodes;
