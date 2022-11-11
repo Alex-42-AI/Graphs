@@ -707,7 +707,7 @@ class UndirectedGraph:
         if type(other) == UndirectedGraph:
             if self.__degrees_sum != other.__degrees_sum:
                 return False
-            if len(self.__nodes) != len(other.__nodes) or len(self.__links) != len(other.__links):
+            if len(self.__nodes) != len(other.__nodes):
                 return False
             this_degrees, other_degrees = dict(), dict()
             for d in self.__degrees.values():
@@ -1007,7 +1007,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
         if type(other) == WeightedUndirectedGraph:
             if self.__degrees_sum != other.degrees_sum():
                 return False
-            if len(self.__nodes) != len(other.nodes()) or len(self.__links) != len(other.links()):
+            if len(self.__nodes) != len(other.nodes()):
                 return False
             this_degrees, other_degrees, this_weights, other_weights = dict(), dict(), dict(), dict()
             for d in self.__degrees.values():
@@ -1556,7 +1556,7 @@ class DirectedGraph:
         if type(other) == DirectedGraph:
             if self.__degrees_sum != other.__degrees_sum:
                 return False
-            if len(self.__nodes) != len(other.__nodes) or len(self.__links) != len(other.__links):
+            if len(self.__nodes) != len(other.__nodes):
                 return False
             this_degrees, other_degrees = Dict(), Dict()
             for d in self.__degrees.values():
@@ -1835,7 +1835,7 @@ class WeightedDirectedGraph(DirectedGraph):
         if type(other) == DirectedGraph:
             if self.__degrees_sum != other.__degrees_sum:
                 return False
-            if len(self.__nodes) != len(other.__nodes) or len(self.__links) != len(other.__links):
+            if len(self.__nodes) != len(other.__nodes):
                 return False
             this_degrees, other_degrees, this_weights, other_weights = Dict(), Dict(), dict(), dict()
             for d in self.__degrees.values():
