@@ -1393,7 +1393,7 @@ class DirectedGraph:
             if links == [(node1, node2)]:
                 return links
             for l in links:
-                if node1 == l[0]:
+                if node1 == l[0] and self.__connected(self.__nodes, [_l for _l in links if _l != l]):
                     return [l] + self.__Euler_walk(l[1], node2, [_l for _l in links if _l != l])
         raise ValueError('Unrecognized nodes!')
     def Euler_walk(self, node1: Node, node2: Node):
