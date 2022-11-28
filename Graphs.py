@@ -1882,11 +1882,13 @@ class Tree:
                 d += 1
             return d
         raise ValueError('Node not in graph!')
-    def height(self, curr_node: Node = None):
+    def __height(self, curr_node: Node = None):
         if curr_node is None:
             curr_node = self.__root
-        return 1 + max([0, *map(self.height, self.descendants(curr_node))])
-    def path_to(self, node: Node, curr_root: Node = None):
+        return 1 + max([0, *map(self.__height, self.descendants(curr_node))])
+    def height(self):
+        return self.__height()
+    def __path_to(self, node: Node, curr_root: Node = None):
         if curr_root is None:
             curr_root = self.__root
         if curr_root == node:
@@ -1894,9 +1896,11 @@ class Tree:
         if curr_root in self.__leaves:
             return
         for n in self.descendants(curr_root):
-            res = self.path_to(node, n)
+            res = self.__path_to(node, n)
             if res:
                 return [curr_root] + res
+    def path_to(self, node: Node):
+        return self.__path_to(node)
     def isomorphic(self, other):
         if isinstance(other, Tree):
             if len(self.__nodes) != len(other.__nodes) or len(self.__links) != len(other.__links) or len(self.leaves()) != len(other.leaves()) or len(self.descendants(self.__root)) != len(other.descendants(other.root())):
