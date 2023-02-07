@@ -1,7 +1,7 @@
 # Graphs
 A graph is a data structure, consisting of nodes and links between some of them. There are different types of graphs, such as directed/undirected, weighted/unweighted and multigraphs.
 
-This project is an implementation of an unweighted undirected graph, a weighted undirected graph, an unweighted directed graph and a weighted directed graph, as well as of a tree.
+This project is an implementation of an unweighted undirected graph, a weighted undirected graph, an unweighted directed graph and a weighted directed graph, as well as of a binary tree and a regular tree.
 
 Regardless of their differences, all graph classes have methods for:
 1) returning a list of the nodes;
@@ -60,3 +60,30 @@ Weighted graphs, in addition to their parental superclasses, have methods for:
 On top of that, the methods for adding and connecting nodes differ such, that instead of accepting a positive number of nodes, which a given node is going to be connected to, they accept a positive number of pairs, each of which contains a node and a real number, that is going to be the value of the link between the two nodes.
 Also, their methods for finding an Euler tour, an Euler walk, a Hamilton tour and a Hamilton walk also return the sum of the weights of the links in the paths found and the Hamilton methods look for the lightest routes possible.
 And finally, weighted graphs are represented with their nodes and their dictionary of the weights, rather than the nodes and the links alone.
+
+The binary tree in this project has:
+1) methods left() and right(), that return respectively the left subtree and the right subtree;
+2) methods to return the height of the tree - one recursive and one using DFS;
+3) a method to return all nodes on a certain level in the tree and a method, that returns the width of the tree;
+4) a method for counting the leaves of the tree;
+5) a method for counting the nodes of the tree;
+6) a method for finding the Morse code of a node with a given value in the tree;
+7) a method for encrypting a message into morse code;
+8) __contains__ and __eq__ methods;
+9) a method for inverting the tree;
+10) methods for printing all the node values in the tree preorder, in order and post order.
+
+The tree class in the project has methods for:
+1) getting the root, the nodes, the links, the leaves and the hierarchy in the tree;
+2) getting the descendants of a given node in the tree;
+3) making a copy of the tree;
+4) adding new nodes to one already in the tree;
+5) extending the tree with another one on a given node;
+6) removing a node with all of its descendants;
+7) returning the parent node of a given one;
+8) returning the depth of a given node;
+9) returning the height of the tree;
+10) getting the path from the root to a given node;
+11) checking whether the tree is isomorphic with another tree;
+12) checking whether a node or a link is contained in the tree;
+13) comparing the tree with another one.
