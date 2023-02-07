@@ -87,3 +87,8 @@ The tree class in the project has methods for:
 11) checking whether the tree is isomorphic with another tree;
 12) checking whether a node or a link is contained in the tree;
 13) comparing the tree with another one.
+
+There are also 3 external functions:
+1) cartesian_product, that takes an unlimited number of lists and returns their cartesian product;
+2) print_zig_zag, which prints out the nodes of a binary tree on each level, reversing the order, compared to the previous level;
+3) binary_heap, which makes a binary head of a given list.
