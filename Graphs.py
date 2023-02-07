@@ -525,11 +525,8 @@ class UndirectedGraph:
                 if l[0] in duplicates:
                     return False
         return True
-    def __reachable(self, node1: Node, node2: Node, nodes: [Node] = None, links: [Link] = None):
-        if nodes is None:
-            nodes = self.__nodes
-        if links is None:
-            links = self.__links
+    @staticmethod
+    def __reachable(node1: Node, node2: Node, nodes: [Node], links: [Link]):
         if node1 not in nodes or node2 not in nodes:
             raise Exception('Unrecognized node(s).')
         if node1 == node2:
@@ -546,12 +543,8 @@ class UndirectedGraph:
                 return False
             so_far = total.copy()
     def reachable(self, node1: Node, node2: Node):
-        return self.__reachable(node1, node2)
-    def __path_with_length(self, node1: Node, node2: Node, length: int, nodes: [Node] = None, links: [Link] = None):
-        if nodes is None:
-            nodes = self.__nodes
-        if links is None:
-            links = self.__links
+        return self.__reachable(node1, node2, self.__nodes, self.__links)
+    def __path_with_length(self, node1: Node, node2: Node, length: int, nodes: [Node], links: [Link]):
         if not self.__reachable(node1, node2, nodes, links):
             return False
         if not length:
@@ -564,7 +557,7 @@ class UndirectedGraph:
                 return [Link(node1, n)] + res
         return False
     def path_with_length(self, node1: Node, node2: Node, length: int):
-        return self.__path_with_length(node1, node2, length)
+        return self.__path_with_length(node1, node2, length, self.__nodes, self.__links)
     def __loop_with_length(self, length: int, nodes: [Node] = None, links: [Link] = None):
         if nodes is None:
             nodes = self.__nodes
@@ -588,7 +581,7 @@ class UndirectedGraph:
         if n == 1:
             return [[_n] for _n in self.__nodes]
         if n == len(self.__nodes):
-            return [[], [self.__nodes.copy()]][self.__full()]
+            return [[], [self.__nodes.copy()]][self.__full(self.__nodes, self.__links)]
         result = []
         for p in permutations(self.__nodes, n):
             can = True
@@ -705,20 +698,17 @@ class UndirectedGraph:
                             curr.connect(n, m)
                 total += curr.faces() - 1
             return total
-    def __full(self, nodes: [Node] = None, links: [Link] = None):
-        if nodes is None:
-            nodes = self.__nodes
-        if links is None:
-            links = self.__links
+    @staticmethod
+    def __full(nodes: [Node], links: [Link]):
         return 2 * len(links) == len(nodes) * (len(nodes) - 1)
     def full(self):
-        return self.__full()
+        return self.__full(self.__nodes, self.__links)
     def get_shortest_path(self, node1: Node, node2: Node):
         if node1 not in self.__nodes or node2 not in self.__nodes:
             raise Exception('Unrecognized node(s).')
         if Link(node1, node2) in self.__links:
             return [Link(node1, node2)]
-        if not self.__reachable(node1, node2):
+        if not self.__reachable(node1, node2, self.__nodes, self.__links):
             return []
         paths = Dict(*[(n, None) for n in self.__nodes])
         paths[node2] = []
@@ -740,7 +730,7 @@ class UndirectedGraph:
             raise Exception('Unrecognized node(s).')
         distances = Dict(*[(n, len(self.__nodes) - 1) for n in self.__nodes])
         distances[node2] = 0
-        if not self.__reachable(node1, node2):
+        if not self.__reachable(node1, node2, self.__nodes, self.__links):
             return float('inf')
         if Link(node1, node2) in self.__links:
             return 1
@@ -762,7 +752,7 @@ class UndirectedGraph:
             if self.__degrees[node] % 2:
                 return False
         return True
-    def __Euler_walk_exists(self, start: Node, end: Node, nodes: [Node] = None, links: [Link] = None):
+    def __Euler_walk_exists(self, start: Node, end: Node, nodes: [Node], links: [Link]):
         if nodes is None:
             nodes = self.__nodes
         if links is None:
@@ -773,8 +763,8 @@ class UndirectedGraph:
                 return False
         return temp_degrees[start] % 2 + temp_degrees[end] % 2 == [2, 0][start == end]
     def Euler_walk_exists(self, start: Node, end: Node):
-        return self.__Euler_walk_exists(start, end)
-    def __Hamilton_tour_exists(self, nodes: [Node] = None, links: [Link] = None, can_continue_from: [Node] = None, can_end_in: [Node] = None, end_links: [Link] = None):
+        return self.__Euler_walk_exists(start, end, self.__nodes, self.__links)
+    def __Hamilton_tour_exists(self, nodes: [Node], links: [Link], can_continue_from: [Node] = None, can_end_in: [Node] = None, end_links: [Link] = None):
         if nodes is None:
             nodes = self.__nodes
         if links is None:
@@ -823,7 +813,7 @@ class UndirectedGraph:
                 return True
         return False
     def Hamilton_tour_exists(self):
-        return self.__Hamilton_tour_exists()
+        return self.__Hamilton_tour_exists(self.__nodes, self.__links)
     def __Hamilton_walk_exists(self, node1: Node, node2: Node = None, nodes: [Node] = None, links: [Link] = None, can_continue_from: [Node] = None):
         if nodes is None:
             nodes = self.__nodes
@@ -854,14 +844,10 @@ class UndirectedGraph:
         if self.Euler_tour_exists():
             for n1 in self.__nodes:
                 for n2 in self.__neighboring[n1]:
-                    if self.__Euler_walk_exists(n1, n2):
-                        return self.__Euler_walk(n1, n2, links=[l for l in self.__links if l != Link(n1, n2)]) + [Link(n1, n2)]
+                    if self.__Euler_walk_exists(n1, n2, self.__nodes, self.__links):
+                        return self.__Euler_walk(n1, n2, self.__nodes, [l for l in self.__links if l != Link(n1, n2)]) + [Link(n1, n2)]
         return False
-    def __Euler_walk(self, node1: Node, node2: Node, nodes: [Node] = None, links: [Link] = None):
-        if nodes is None:
-            nodes = self.__nodes
-        if links is None:
-            links = self.__links
+    def __Euler_walk(self, node1: Node, node2: Node, nodes: [Node], links: [Link]):
         if node1 in nodes and node2 in nodes:
             if self.__Euler_walk_exists(node1, node2, nodes, links):
                 if links == [Link(node1, node2)]:
@@ -874,7 +860,7 @@ class UndirectedGraph:
             return False
         raise Exception('Unrecognized nodes!')
     def Euler_walk(self, node1: Node, node2: Node):
-        return self.__Euler_walk(node1, node2)
+        return self.__Euler_walk(node1, node2, self.__nodes, self.__links)
     def Hamilton_tour(self):
         if any(self.__degrees[n] <= 1 for n in self.__nodes) or not self.__connected(self.__nodes, self.__links):
             return False
@@ -884,7 +870,7 @@ class UndirectedGraph:
                 if res:
                     return res + [n1]
         return False
-    def __Hamilton_walk(self, node1: Node, node2: Node | None, nodes: [Node] = None, links: [Link] = None, can_continue_from: [Node] = None, res_stack: [Node] = None):
+    def __Hamilton_walk(self, node1: Node, node2: Node = None, nodes: [Node] = None, links: [Link] = None, can_continue_from: [Node] = None, res_stack: [Node] = None):
         if nodes is None:
             nodes = self.__nodes
         if links is None:
@@ -1114,7 +1100,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
         return res_links, sum(v for v in (self.weights(l) for l in res_links))
     def minimal_path(self, node1: Node, node2: Node):
         if node1 in self.nodes() and node2 in self.nodes():
-            if self.__reachable(node1, node2):
+            if self.__reachable(node1, node2, self.__nodes, self.__links):
                 def DFS(curr_node, curr_path, total_negative, res_path=None):
                     if node1 == node2 and res_path is None:
                         res_path = [[], 0]
@@ -1150,7 +1136,7 @@ class WeightedUndirectedGraph(UndirectedGraph):
                 if res:
                     return res[0] + [n1], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1)) + self.weights(res[0][-1], res[0][0])
         return False
-    def __Hamilton_walk(self, node1: Node, node2: Node | None, nodes: [Node] = None, links: [Link] = None, can_continue_from: [Node] = None, res_stack: [Node] = None):
+    def __Hamilton_walk(self, node1: Node, node2: Node = None, nodes: [Node] = None, links: [Link] = None, can_continue_from: [Node] = None, res_stack: [Node] = None):
         if nodes is None:
             nodes = self.__nodes
         if links is None:
@@ -1479,7 +1465,7 @@ class DirectedGraph:
         return True
     def strongly_connected(self):
         return self.__strongly_connected()
-    def __reachable(self, node1: Node, node2: Node, nodes: [Node] = None, links: [(Node, Node)] = None):
+    def __reachable(self, node1: Node, node2: Node, nodes: [Node], links: [(Node, Node)]):
         if nodes is None:
             nodes = self.__nodes
         if links is None:
@@ -1498,7 +1484,7 @@ class DirectedGraph:
                 return False
             so_far = total.copy()
     def reachable(self, node1: Node, node2: Node):
-        return self.__reachable(node1, node2)
+        return self.__reachable(node1, node2, self.__nodes, self.__links)
     def __path_with_length(self, node1: Node, node2: Node, length: int, nodes: [Node] = None, links: [(Node, Node)] = None):
         if nodes is None:
             nodes = self.__nodes
@@ -1519,11 +1505,7 @@ class DirectedGraph:
         return False
     def path_with_length(self, node1: Node, node2: Node, length: int):
         return self.__path_with_length(node1, node2, length)
-    def __loop_with_length(self, length: int, nodes: [Node] = None, links: [(Node, Node)] = None):
-        if nodes is None:
-            nodes = self.__nodes
-        if links is None:
-            links = self.__links
+    def __loop_with_length(self, length: int, nodes: [Node], links: [(Node, Node)]):
         for n in nodes:
             for l in [l for l in links if l[0] == n]:
                 res = self.__path_with_length(l[1], n, length - 1, nodes, [_l for _l in links if _l != (l[1], n)])
@@ -1531,7 +1513,7 @@ class DirectedGraph:
                     return [l] + res
         return False
     def loop_with_length(self, length: int):
-        return self.__loop_with_length(length)
+        return self.__loop_with_length(length, self.__nodes, self.__links)
     def cut_nodes(self):
         c, cuts = len(self.__connection_components(self.__nodes, self.__links)), []
         for n in self.__nodes:
@@ -1549,7 +1531,7 @@ class DirectedGraph:
             raise Exception('Unrecognized node(s).')
         if (node1, node2) in self.__links:
             return [(node1, node2)]
-        if not self.__reachable(node1, node2):
+        if not self.__reachable(node1, node2, self.__nodes, self.__links):
             return False
         paths = Dict(*[(n, None) for n in self.__nodes])
         paths[node2] = []
@@ -1574,7 +1556,7 @@ class DirectedGraph:
             raise Exception('Unrecognized node(s).')
         if (node1, node2) in self.__links:
             return 1
-        if not self.__reachable(node1, node2):
+        if not self.__reachable(node1, node2, self.__nodes, self.__links):
             return float('inf')
         for l in [l for l in self.__links if node2 == l[1]]:
             distances[l[0]] = 1
@@ -1595,9 +1577,7 @@ class DirectedGraph:
             if d[0] != d[1]:
                 return False
         return self.__connected(self.__nodes, self.__links)
-    def __Euler_walk_exists(self, start: Node, end: Node, links: [(Node, Node)] = None):
-        if links is None:
-            links = self.__links
+    def __Euler_walk_exists(self, start: Node, end: Node, links: [(Node, Node)]):
         if self.Euler_tour_exists():
             return start == end
         temp_degrees = Dict(*[(n, [sum([n == l[0] for l in links]), sum([n == l[1] for l in links])]) for n in self.__nodes])
@@ -1606,7 +1586,7 @@ class DirectedGraph:
                 return False
         return temp_degrees[start][0] % 2 + temp_degrees[end][1] % 2 in [0, 2] and self.__connected(self.__nodes, self.__links)
     def Euler_walk_exists(self, start: Node, end: Node):
-        return self.__Euler_walk_exists(start, end)
+        return self.__Euler_walk_exists(start, end, self.__links)
     def __Hamilton_tour_exists(self, nodes: [Node] = None, links: [(Node, Node)] = None, can_continue_from: [Node] = None, can_end_in: [Node] = None, end_links: [(Node, Node)] = None):
         if nodes is None:
             nodes = self.__nodes
@@ -1686,7 +1666,7 @@ class DirectedGraph:
                     return [l] + self.__Euler_walk(l[1], node2, [_l for _l in links if _l != l])
         raise ValueError('Unrecognized nodes!')
     def Euler_walk(self, node1: Node, node2: Node):
-        return self.__Euler_walk(node1, node2) if self.__Euler_walk_exists(node1, node2) else False
+        return self.__Euler_walk(node1, node2) if self.__Euler_walk_exists(node1, node2, self.__links) else False
     def Hamilton_tour(self):
         if any(not self.__degrees[n][0] or not self.__degrees[n][1] for n in self.__nodes) or not self.__connected(self.__nodes, self.__links):
             return False
@@ -1696,7 +1676,7 @@ class DirectedGraph:
                 if res:
                     return res + [n1]
         return False
-    def __Hamilton_walk(self, node1: Node, node2: Node | None, nodes: [Node] = None, links: [(Node, Node)] = None, can_continue_from: [Node] = None, res_stack: [Node] = None):
+    def __Hamilton_walk(self, node1: Node, node2: Node = None, nodes: [Node] = None, links: [(Node, Node)] = None, can_continue_from: [Node] = None, res_stack: [Node] = None):
         if nodes is None:
             nodes = self.__nodes
         if links is None:
@@ -1903,7 +1883,7 @@ class WeightedDirectedGraph(DirectedGraph):
         return res, sum(self.__weights[l] for l in res)
     def minimal_path(self, node1: Node, node2: Node):
         if node1 in self.nodes() and node2 in self.nodes():
-            if self.__reachable(node1, node2):
+            if self.__reachable(node1, node2, self.__nodes, self.__links):
                 def DFS(curr_node, curr_path, total_negative, res_path=None):
                     if node1 == node2 and res_path is None:
                         res_path = [[], 0]
@@ -1939,7 +1919,7 @@ class WeightedDirectedGraph(DirectedGraph):
                 if res:
                     return res[0] + [n1], res[1] + sum(self.weights(res[0][i], res[0][i + 1]) for i in range(len(res[0]) - 1)) + self.weights(res[0][-1], res[0][0])
         return False
-    def __Hamilton_walk(self, node1: Node, node2: Node | None, nodes: [Node] = None, links: [(Node, Node)] = None, can_continue_from: [Node] = None, res_stack: [Node] = None):
+    def __Hamilton_walk(self, node1: Node, node2: Node = None, nodes: [Node] = None, links: [(Node, Node)] = None, can_continue_from: [Node] = None, res_stack: [Node] = None):
         if nodes is None:
             nodes = self.__nodes
         if links is None:
