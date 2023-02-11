@@ -343,9 +343,9 @@ def print_zig_zag(t: BinTree):
         print(), helper(not from_left, *new)
     print(t.root), helper(True, t.root)
 class UndirectedGraph:
-    def __init__(self, start: Node, *rest: Node):
+    def __init__(self, *nodes: Node):
         self.__nodes = []
-        for n in (start,) + rest:
+        for n in nodes:
             if n not in self.__nodes:
                 self.__nodes.append(n)
         self.__links, self.__neighboring, self.__degrees, self.__degrees_sum = [], Dict(*[(n, []) for n in self.__nodes]), Dict(*[(n, 0) for n in self.__nodes]), 0
@@ -413,7 +413,7 @@ class UndirectedGraph:
             if curr_max > curr:
                 curr = curr_max
         return curr
-    def __longest_possible_path(self, nodes, links):
+    def longest_possible_path(self):
         def DFS(curr, links_left, _res):
             neighboring = list(filter(lambda _n: Link(_n, curr) in links_left, self.__neighboring[curr]))
             if not neighboring:
@@ -426,28 +426,32 @@ class UndirectedGraph:
             return longest
         if self.Euler_tour_exists():
             return self.Euler_tour()
-        curr_degrees = Dict()
-        for l in links:
-            if l[0] in curr_degrees:
-                curr_degrees[l[0]] += 1
-            else:
-                curr_degrees[l[0]] = 1
-            if l[1] in curr_degrees:
-                curr_degrees[l[1]] += 1
-            else:
-                curr_degrees[l[1]] = 1
-        nodes = list(sorted(nodes, key=lambda n: curr_degrees[n]))
-        singles = [n for n in nodes if curr_degrees[n] == 1]
-        if len(singles) == 2 and self.__Euler_walk_exists(*singles, nodes, links):
-            return self.__Euler_walk(*singles, nodes, links)
+        if not self.connected():
+            res = []
+            for c in self.connection_components():
+                g = UndirectedGraph(*c)
+                for n0 in c:
+                    for n1 in c:
+                        if Link(n0, n1) in self.__links and n0 != n1:
+                            g.connect(n0, n1)
+                curr_res = g.longest_possible_path()
+                if len(curr_res) > len(res):
+                    res = curr_res
+            return res
+        nodes = list(sorted(self.__nodes, key=lambda _n: self.__degrees[_n]))
+        singles = []
+        for n in nodes:
+            if self.__degrees[n][0] - 1:
+                break
+            singles.append(n)
+        if len(singles) == 2 and self.__Euler_walk_exists(*singles):
+            return self.__Euler_walk(*singles)
         res = []
         for n in nodes:
-            curr_res = DFS(n, links, [])
+            curr_res = DFS(n, self.__links, [])
             if len(curr_res) > len(res):
                 res = curr_res
         return res
-    def longest_possible_path(self):
-        return self.__longest_possible_path(self.__nodes, self.__links)
     def complementary(self):
         res = UndirectedGraph(*self.__nodes)
         for i, n in enumerate(self.__nodes):
@@ -985,8 +989,8 @@ class UndirectedGraph:
     def __repr__(self):
         return str(self)
 class WeightedUndirectedGraph(UndirectedGraph):
-    def __init__(self, start: Node, *rest: Node):
-        super().__init__(start, *rest)
+    def __init__(self, *nodes: Node):
+        super().__init__(*nodes)
         self.__weights, self.__total_weight = Dict(*[(l, 0) for l in self.links()]), 0
     def weights(self, node1_or_link: (Node, Link) = None, node2: Node = None):
         if node1_or_link is None:
@@ -1273,9 +1277,9 @@ class WeightedUndirectedGraph(UndirectedGraph):
     def __str__(self):
         return '({' + ', '.join(str(n) for n in self.nodes()) + '}, ' + str(self.__weights) + ')'
 class DirectedGraph:
-    def __init__(self, start: Node, *rest: Node):
+    def __init__(self, *nodes: Node):
         self.__nodes = []
-        for n in (start,) + rest:
+        for n in nodes:
             if n not in self.__nodes:
                 self.__nodes.append(n)
         self.__links, self.__degrees_sum, self.__degrees, self.__neighboring = [], 0, Dict(*[(n, [0, 0]) for n in self.__nodes]), Dict(*[(n, []) for n in self.__nodes])
@@ -1359,9 +1363,9 @@ class DirectedGraph:
                 self.__degrees[n][1] -= 1
                 self.__degrees_sum -= 2
                 self.__links.remove((node1, n))
-    def __longest_possible_path(self, nodes, links):
+    def longest_possible_path(self):
         def DFS(curr, links_left, _res):
-            neighboring = list(filter(lambda _n: (_n, curr) in links_left, self.__neighboring[curr]))
+            neighboring = list(filter(lambda _n: (curr, _n) in links_left, self.__neighboring[curr]))
             if not neighboring:
                 return _res
             longest = []
@@ -1372,28 +1376,36 @@ class DirectedGraph:
             return longest
         if self.Euler_tour_exists():
             return self.Euler_tour()
-        curr_outer_degrees = Dict()
-        for l in links:
-            if l[0] in curr_outer_degrees:
-                curr_outer_degrees[l[0]] += 1
-            else:
-                curr_outer_degrees[l[0]] = 1
-            if l[1] in curr_outer_degrees:
-                curr_outer_degrees[l[1]] += 1
-            else:
-                curr_outer_degrees[l[1]] = 1
-        nodes = list(sorted(nodes, key=lambda n: curr_outer_degrees[n]))
-        singles = [n for n in nodes if curr_outer_degrees[n] == 1]
-        if len(singles) == 2 and self.__Euler_walk_exists(*singles, nodes, links):
-            return self.__Euler_walk(*singles, nodes, links)
+        if not self.connected():
+            res = []
+            for c in self.connection_components():
+                g = DirectedGraph(*c)
+                for n0 in c:
+                    for n1 in c:
+                        if (n0, n1) in self.__links:
+                            g.connect_from_to(n0, n1)
+                curr_res = g.longest_possible_path()
+                if len(curr_res) > len(res):
+                    res = curr_res
+            return res
+        _curr = list(filter(lambda x: self.__degrees[x][0], sorted(self.__nodes, key=lambda _n: self.__degrees[_n][0])))
+        tmp = list(filter(lambda x: not self.__degrees[x][1], _curr))
+        if tmp:
+            _curr = tmp
+        nodes = _curr
+        singles = []
+        for n in nodes:
+            if self.__degrees[n][0] - 1:
+                break
+            singles.append(n)
+        if len(singles) == 2 and self.__Euler_walk_exists(*singles):
+            return self.__Euler_walk(*singles)
         res = []
         for n in nodes:
-            curr_res = DFS(n, links, [])
+            curr_res = DFS(n, self.__links, [])
             if len(curr_res) > len(res):
                 res = curr_res
         return res
-    def longest_possible_path(self):
-        return self.__longest_possible_path(self.__nodes, self.__links)
     def complementary(self):
         res = DirectedGraph(*self.__nodes)
         for i, n in enumerate(self.__nodes):
@@ -1580,7 +1592,7 @@ class DirectedGraph:
         for d in self.__degrees.values():
             if d[0] != d[1]:
                 return False
-        return self.__connected(self.__nodes, self.__links)
+        return self.connected()
     def __Euler_walk_exists(self, start: Node, end: Node, links: [(Node, Node)]):
         if self.Euler_tour_exists():
             return start == end
@@ -1797,8 +1809,8 @@ class DirectedGraph:
     def __repr__(self):
         return str(self)
 class WeightedDirectedGraph(DirectedGraph):
-    def __init__(self, start: Node, *rest: Node):
-        super().__init__(start, *rest)
+    def __init__(self, *nodes: Node):
+        super().__init__(*nodes)
         self.__weights, self.__total_weight = Dict(*[(l, 0) for l in self.links()]), 0
     def weights(self, node1_or_link: Node | tuple = None, node2: Node = None):
         if node1_or_link is None:
