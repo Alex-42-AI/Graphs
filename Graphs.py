@@ -1378,6 +1378,10 @@ class DirectedGraph:
                 curr_outer_degrees[l[0]] += 1
             else:
                 curr_outer_degrees[l[0]] = 1
+            if l[1] in curr_outer_degrees:
+                curr_outer_degrees[l[1]] += 1
+            else:
+                curr_outer_degrees[l[1]] = 1
         nodes = list(sorted(nodes, key=lambda n: curr_outer_degrees[n]))
         singles = [n for n in nodes if curr_outer_degrees[n] == 1]
         if len(singles) == 2 and self.__Euler_walk_exists(*singles, nodes, links):
