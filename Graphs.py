@@ -2137,6 +2137,20 @@ class Tree:
             if not new:
                 break
             current = new.copy()
+    def move_node(self, node: Node, at_new: Node):
+        if node not in self.__nodes:
+            return
+        if at_new not in self.__nodes:
+            raise ValueError("Unrecognized node!")
+        descendants = self.descendants(node)
+        p = self.parent(node)
+        self.__hierarchy[p].remove(node)
+        if not self.__hierarchy[p]:
+            self.__leaves.append(p)
+        self.__links.remove((p, node))
+        self.__nodes.remove(node)
+        self.add_nodes_to(at_new, node)
+        self.__hierarchy[node] = descendants
     def remove_node(self, node: Node):
         if node not in self.__nodes:
             raise ValueError('Node not in tree!')
