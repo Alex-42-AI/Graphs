@@ -538,7 +538,7 @@ class UndirectedGraph:
         if k == 1:
             return list(map(list, self.__nodes))
         if k == len(self.__nodes):
-            return [[], [self.__nodes]][self.__full(self.__nodes, self.__links)]
+            return [[], [self.__nodes]][self.full()]
         result = []
         for p in permutations(self.__nodes, k):
             can = True
@@ -559,66 +559,66 @@ class UndirectedGraph:
                     result.append(list(p))
         return result
     def cut_nodes(self):
-        c, cuts = len(self.__connection_components(self.__nodes, self.__links)), []
+        c, cuts = len(self.connection_components()), []
         for n in self.__nodes:
             if len(self.__connection_components([_n for _n in self.__nodes if _n != n], [l for l in self.__links if n not in l])) > c:
                 cuts.append(n)
         return cuts
     def bridge_links(self):
-        c, bridges = len(self.__connection_components(self.__nodes, self.__links)), []
+        c, bridges = len(self.connection_components()), []
         for l in self.__links:
             if len(self.__connection_components(self.__nodes, [_l for _l in self.__links if _l != l])) > c:
                 bridges.append(l)
         return bridges
-    def __chromatic_number_nodes(self, nodes: [Node] = None, curr=0, so_far: [Node] = None, Except: [Node] = None):
-        if len(self.__links) > 30:
-            nodes = sorted(self.__nodes, key=lambda _n: self.__degrees[_n])
-            colors, so_far, curr = Dict((nodes[0], 0)), [nodes[0]], [nodes[0]]
-            while len(so_far) < len(nodes):
-                new_curr = []
-                for n in curr:
-                    neighboring = [_n for _n in self.__neighboring[n] if _n not in curr + so_far]
-                    new_curr += neighboring.copy()
-                    for m in neighboring:
-                        so_far.append(m)
-                        cols = [colors[_n] for _n in filter(lambda node: node in so_far, self.__neighboring[m])]
-                        for i in range(len(cols) + 1):
-                            if i not in cols:
-                                colors[m] = i
-                                break
-                curr = new_curr.copy()
-            return max(colors.values())
-        if so_far is None:
-            so_far = []
-        if Except is None:
-            Except = []
-        if nodes is None:
-            nodes = sorted(self.__nodes, key=lambda _n: self.__degrees[_n])
-        if not nodes:
-            return curr
-        if self.__full(nodes, [l for l in self.__links if l[0] in nodes and l[1] in nodes]):
-            return len(nodes) + curr
-        curr_degrees = Dict(*[(n, 0) for n in nodes])
-        for n in nodes:
-            for m in nodes:
-                if Link(n, m) in self.__links:
-                    curr_degrees[n] += 1
-        nodes = [nodes[0]] + sorted([_n for _n in nodes if _n != nodes[0]], key=lambda _n: curr_degrees[_n])
-        so_far.append(nodes[0])
-        rest = [_n for _n in nodes if _n not in self.__neighboring[nodes[0]] and _n != nodes[0] and _n not in Except]
-        if not rest:
-            _res = self.__chromatic_number_nodes([n for n in nodes if n not in so_far], curr + 1, so_far)
-            so_far.pop()
-            return _res
-        res = len(self.__nodes)
-        for n in rest:
-            _res = self.__chromatic_number_nodes([n] + [_n for _n in nodes if _n not in (nodes[0], n)], curr, so_far, Except + [_n for _n in nodes if Link(nodes[0], _n) in self.__links or Link(n, _n) in self.__links])
-            if n in so_far:
-                so_far.remove(n)
-            res = min(res, _res)
-        return res
     def chromatic_number_nodes(self):
-        return self.__chromatic_number_nodes()
+        def helper(nodes: [Node] = None, curr=0, so_far: [Node] = None, _except: [Node] = None):
+            if len(self.__links) > 30:
+                nodes = sorted(self.__nodes, key=lambda _n: self.__degrees[_n])
+                colors, so_far, curr = Dict((nodes[0], 0)), [nodes[0]], [nodes[0]]
+                while len(so_far) < len(nodes):
+                    new_curr = []
+                    for n in curr:
+                        neighboring = [_n for _n in self.__neighboring[n] if _n not in curr + so_far]
+                        new_curr += neighboring.copy()
+                        for m in neighboring:
+                            so_far.append(m)
+                            cols = [colors[_n] for _n in filter(lambda node: node in so_far, self.__neighboring[m])]
+                            for i in range(len(cols) + 1):
+                                if i not in cols:
+                                    colors[m] = i
+                                    break
+                    curr = new_curr.copy()
+                return max(colors.values())
+            if so_far is None:
+                so_far = []
+            if _except is None:
+                _except = []
+            if nodes is None:
+                nodes = sorted(self.__nodes, key=lambda _n: self.__degrees[_n])
+            if not nodes:
+                return curr
+            if self.__full(nodes, [l for l in self.__links if l[0] in nodes and l[1] in nodes]):
+                return len(nodes) + curr
+            curr_degrees = Dict(*[(n, 0) for n in nodes])
+            for n in nodes:
+                for m in nodes:
+                    if Link(n, m) in self.__links:
+                        curr_degrees[n] += 1
+            nodes = [nodes[0]] + sorted([_n for _n in nodes if _n != nodes[0]], key=lambda _n: curr_degrees[_n])
+            so_far.append(nodes[0])
+            rest = [_n for _n in nodes if _n not in self.__neighboring[nodes[0]] and _n != nodes[0] and _n not in _except]
+            if not rest:
+                _res = helper([n for n in nodes if n not in so_far], curr + 1, so_far)
+                so_far.pop()
+                return _res
+            res = len(self.__nodes)
+            for n in rest:
+                _res = helper([n] + [_n for _n in nodes if _n not in (nodes[0], n)], curr, so_far, _except + [_n for _n in nodes if Link(nodes[0], _n) in self.__links or Link(n, _n) in self.__links])
+                if n in so_far:
+                    so_far.remove(n)
+                res = min(res, _res)
+            return res
+        return helper()
     def chromatic_number_links(self):
         if not self.__links:
             return 0
@@ -627,13 +627,13 @@ class UndirectedGraph:
             for m in res_graph.nodes():
                 if m != n and (n.value()[0] in m.value() or n.value()[1] in m.value()):
                     res_graph.connect(n, m)
-        return res_graph.__chromatic_number_nodes()
+        return res_graph.chromatic_number_nodes()
     def planar(self):
         if len(self.__nodes) < 2 + bool(self.__links):
             return True
         if self.__connected(self.__nodes, self.__links):
             return (2 + bool(self.loop_with_length(3))) * (len(self.__nodes) - 2) >= len(self.__links)
-        for comp in self.__connection_components(self.__nodes, self.__links):
+        for comp in self.connection_components():
             curr = UndirectedGraph(*comp)
             for n in comp:
                 for m in comp:
@@ -647,7 +647,7 @@ class UndirectedGraph:
             if self.__connected(self.__nodes, self.__links):
                 return len(self.__links) - len(self.__nodes) + 2
             total = 1
-            for comp in self.__connection_components(self.__nodes, self.__links):
+            for comp in self.connection_components():
                 curr = UndirectedGraph(*comp)
                 for n in curr.nodes():
                     for m in curr.nodes():
@@ -1377,13 +1377,15 @@ class DirectedGraph:
     def dag(self):
         if not self.connected():
             return False
-        source, still, total = self.__nodes[0], True, []
-        while still:
-            still = False
-            for _m in self.__nodes:
-                if (_m, source) in self.__links:
-                    source, still = _m, True
+        sources, total = [], []
+        for node in self.__nodes:
+            found = False
+            for _node in self.__nodes:
+                if node in self.__neighboring[_node]:
+                    found = True
                     break
+            if not found:
+                sources.append(node)
         def dfs(n, stack):
             for m in self.__neighboring[n]:
                 if m in total:
@@ -1394,7 +1396,10 @@ class DirectedGraph:
                     return False
             total.append(n)
             return True
-        return dfs(source, [source])
+        for source in sources:
+            if not dfs(source, [source]):
+                return False
+        return True
     @staticmethod
     def __connection_components(nodes: [Node], links: [(Node, Node)]):
         components, current, total, old = [[nodes[0]]], [nodes[0]], [nodes[0]], []
@@ -1502,13 +1507,13 @@ class DirectedGraph:
                     return [(n, m)] + res
         return False
     def cut_nodes(self):
-        c, cuts = len(self.__connection_components(self.__nodes, self.__links)), []
+        c, cuts = len(self.connection_components()), []
         for n in self.__nodes:
             if len(self.__connection_components([_n for _n in self.__nodes if _n != n], [l for l in self.__links if n not in l])) > c:
                 cuts.append(n)
         return cuts
     def bridge_links(self):
-        c, bridges = len(self.__connection_components(self.__nodes, self.__links)), []
+        c, bridges = len(self.connection_components()), []
         for l in self.__links:
             if len(self.__connection_components(self.__nodes, [_l for _l in self.__links if _l != l])) > c:
                 bridges.append(l)
