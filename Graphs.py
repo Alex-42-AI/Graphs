@@ -2152,12 +2152,10 @@ class Tree:
                 d += 1
             return d
         raise ValueError('Node not in graph!')
-    def __height(self, curr_node: Node = None):
-        if curr_node is None:
-            curr_node = self.__root
-        return 1 + max([0, *map(self.__height, self.descendants(curr_node))])
     def height(self):
-        return self.__height()
+        def helper(curr_node: Node):
+            return 1 + max([0, *map(helper, self.descendants(curr_node))])
+        return helper(self.__root)
     def path_to(self, node: Node):
         curr_node, res = node, []
         while curr_node != self.__root:
