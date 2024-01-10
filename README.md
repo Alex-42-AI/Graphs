@@ -42,7 +42,8 @@ Undirected graph classes further have methods for:
 6) counting how many faces the graph separates the surface into (if it's planar);
 7) checking whether the graph is full (whether there are links between every two nodes in it). 
 
-The only method, unique for the directed graphs, is the one, that evaluates whether the graph is strongly connected (whether a path exists between every two nodes in it).
+The only unique methods for the directed graphs are the one, that checks whether the graph is strongly connected (whether a path exists between every two nodes in it)
+and the one, that checks whether the graph is a dag (that it's connected and that there're no loops in it).
 
 However, there are differences in some of the common methods, unique to the directed graphs only, and they are, that:
 1) the method for adding a new node accepts an iterable, containing nodes, that point to the new node and an iterable, containing nodes, that the new node points to;
