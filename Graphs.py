@@ -395,12 +395,24 @@ class UndirectedGraph:
                 self.__degrees[n] -= 1
                 self.__neighboring[node1].remove(n), self.__neighboring[n].remove(node1), self.__links.remove(Link(node1, n))
     def width(self):
-        curr = 0
+        res = 0
         for n in self.__nodes:
-            curr_max = max(self.shortest_path_length(n, m) for m in (_n for _n in self.__nodes if _n != n))
-            if curr_max > curr:
-                curr = curr_max
-        return curr
+            _res, total, curr = 0, [n], [n]
+            while True:
+                new = []
+                for c in curr:
+                    for m in self.__neighboring[c]:
+                        if m not in total:
+                            total.append(m), new.append(m)
+                            if len(total) == len(self.__nodes):
+                                break
+                _res += 1
+                if not new:
+                    break
+                curr = new.copy()
+            if _res > res:
+                res = _res
+        return res
     def complementary(self):
         res = UndirectedGraph(*self.__nodes)
         for i, n in enumerate(self.__nodes):
@@ -415,19 +427,14 @@ class UndirectedGraph:
                 res.connect(n, *self.neighboring(n))
         return res
     def __connection_components(self, nodes: [Node], links: [Link]):
-        if len(nodes) == 1:
+        if len(nodes) in (0, 1):
             return [nodes]
-        components, current, total, old = [[nodes[0]]], [nodes[0]], [nodes[0]], []
+        components, curr, total, old = [[nodes[0]]], [nodes[0]], [nodes[0]], []
         while True:
             new = []
-            for node in current:
-                if node not in total:
-                    total.append(node)
-                    if len(total) == len(nodes):
-                        components[-1] += new
-                        return components
-                for n in [m for m in self.__neighboring[node] if Link(node, m) in links]:
-                    if n not in current + old:
+            for node in curr:
+                for n in [n for n in self.__neighboring[node] if Link(node, n) in links]:
+                    if n not in curr + old:
                         new.append(n), total.append(n)
                         if len(total) == len(nodes):
                             components[-1] += new
@@ -438,7 +445,11 @@ class UndirectedGraph:
             if not new:
                 new = [[n for n in nodes if n not in total][0]]
                 components.append(new)
-            current = new.copy()
+                if new[0] not in total:
+                    total.append(new[0])
+                    if len(total) == len(nodes):
+                        return components
+            curr = new.copy()
     def connection_components(self):
         return self.__connection_components(self.__nodes, self.__links)
     @staticmethod
@@ -447,17 +458,18 @@ class UndirectedGraph:
             return False
         if len(links) > (len(nodes) - 1) * (len(nodes) - 2) / 2 or len(nodes) == 1:
             return True
-        so_far, total = [nodes[0]], [nodes[0]]
+        curr, total = [nodes[0]], [nodes[0]]
         while True:
-            for n in so_far:
+            new = []
+            for n in curr:
                 for m in [m for m in nodes if Link(m, n) in links]:
                     if m not in total:
-                        total.append(m)
+                        total.append(m), new.append(m)
                         if len(total) == len(nodes):
                             return True
-            if so_far == total:
+            if not new:
                 return False
-            so_far = total.copy()
+            curr = new.copy()
     def connected(self):
         return self.__connected(self.__nodes, self.__links)
     def tree(self):
@@ -468,15 +480,15 @@ class UndirectedGraph:
             if l[0] not in nodes:
                 nodes.append(l[0])
             else:
-                duplicates.append(l[0])
                 if l[1] in duplicates:
                     return False
+                duplicates.append(l[0])
             if l[1] not in nodes:
                 nodes.append(l[1])
             else:
-                duplicates.append(l[1])
                 if l[0] in duplicates:
                     return False
+                duplicates.append(l[1])
         return True
     def __reachable(self, node1: Node, node2: Node, nodes: [Node] = None, links: [Link] = None):
         if nodes is None:
@@ -506,13 +518,13 @@ class UndirectedGraph:
                 return (False, stack)[node == node2]
             if l == 1:
                 return (False, stack + [Link(node, node2)])[Link(node, node2) in filter(lambda x: x not in stack, self.__links)]
-            for n in [n for n in self.__nodes if Link(node, n) not in stack]:
+            for n in [n for n in self.__neighboring[node] if Link(node, n) not in stack]:
                 res = dfs(n, l - 1, stack + [Link(node, n)])
                 if res:
                     return res
             return False
         tmp = self.get_shortest_path(node1, node2)
-        if not 0 >= length >= len(tmp):
+        if not len(tmp) <= length:
             return False
         if length == len(tmp):
             return tmp
@@ -674,16 +686,17 @@ class UndirectedGraph:
             new = []
             for n in curr:
                 if n == node2:
-                    res = []
-                    curr_node = n
+                    res, curr_node = [], n
                     while curr_node != node1:
                         res.insert(0, Link(curr_node, previous[curr_node]))
                         curr_node = previous[curr_node]
                     return res
                 for m in self.__neighboring[n]:
-                    if m not in old:
+                    if m not in old + curr:
                         new.append(m)
                         previous[m] = n
+            if not new:
+                return
             curr, old = new.copy(), curr.copy()
     def shortest_path_length(self, node1: Node, node2: Node):
         if node1 not in self.__nodes or node2 not in self.__nodes:
@@ -802,7 +815,7 @@ class UndirectedGraph:
         if self.Euler_tour_exists():
             for n1 in self.__nodes:
                 for n2 in self.__neighboring[n1]:
-                    if self.__Euler_walk_exists(n1, n2, self.__nodes, self.__links):
+                    if self.Euler_walk_exists(n1, n2):
                         return self.__Euler_walk(n1, n2, self.__nodes, [l for l in self.__links if l != Link(n1, n2)]) + [Link(n1, n2)]
         return False
     def __Euler_walk(self, node1: Node, node2: Node, nodes: [Node], links: [Link]):
@@ -1406,11 +1419,6 @@ class DirectedGraph:
         while True:
             new = []
             for node in current:
-                if node not in total:
-                    total.append(node)
-                    if len(total) == len(nodes):
-                        components[-1] += new
-                        return components
                 for n in [n for n in nodes if (node, n) in links or (n, node) in links]:
                     if n not in current and n not in old:
                         new.append(n), total.append(n)
@@ -1423,6 +1431,10 @@ class DirectedGraph:
             if not new:
                 new = [[n for n in nodes if n not in total][0]]
                 components.append(new)
+                if new[0] not in total:
+                    total.append(new[0])
+                    if len(total) == len(nodes):
+                        return components
             current = new.copy()
     def connection_components(self):
         return self.__connection_components(self.__nodes, self.__links)
@@ -1488,13 +1500,13 @@ class DirectedGraph:
                 return (False, stack)[node == node2]
             if l == 1:
                 return (False, stack + [(node, node2)])[(node, node2) in filter(lambda x: x not in stack, self.__links)]
-            for n in self.__neighboring[node]:
+            for n in [n for n in self.__neighboring[node] if (node, n) not in stack]:
                 res = dfs(n, l - 1, stack + [(node, n)])
                 if res:
                     return res
             return False
         tmp = self.get_shortest_path(node1, node2)
-        if not 0 >= length >= len(tmp):
+        if not len(tmp) <= length:
             return False
         if length == len(tmp):
             return tmp
