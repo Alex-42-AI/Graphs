@@ -147,7 +147,7 @@ class BinTree:
     def nodes_on_level(self, level: int, curr_node: BinNode = ''):
         if curr_node == '':
             curr_node = self.root
-        if level > self.__get_height_recursive() or level < 0:
+        if level > self.get_height() or level < 0:
             return []
         if not level:
             return [curr_node]
@@ -161,22 +161,22 @@ class BinTree:
         return left + right
     def width(self):
         Max = 0
-        for i in range(self.__get_height_recursive()):
+        for i in range(self.get_height()):
             Max = max(len(self.nodes_on_level(i)), Max)
         return Max
-    def __get_height_recursive(self, curr_node=''):
-        if curr_node == '':
-            curr_node = self.root
-        if curr_node.left is None and curr_node.right is None:
-            return 0
-        left, right = 0, 0
-        if curr_node.left is not None:
-            left = self.__get_height_recursive(curr_node.left)
-        if curr_node.right is not None:
-            right = self.__get_height_recursive(curr_node.right)
-        return 1 + max(left, right)
     def get_height_recursive(self):
-        return self.__get_height_recursive()
+        def helper(curr_node=''):
+            if curr_node == '':
+                curr_node = self.root
+            if curr_node.left is None and curr_node.right is None:
+                return 0
+            left, right = 0, 0
+            if curr_node.left is not None:
+                left = helper(curr_node.left)
+            if curr_node.right is not None:
+                right = helper(curr_node.right)
+            return 1 + max(left, right)
+        return helper()
     def get_height(self):
         Last_Node = self.root
         while Last_Node.right is not None:
@@ -214,45 +214,45 @@ class BinTree:
         if curr_node is None:
             return 0
         return (curr_node.value() is not None) + self.count_nodes(curr_node.left) + self.count_nodes(curr_node.right)
-    def __code_in_morse(self, v, tree=None):
-        if tree is None:
-            tree = self
-        if tree.root.value() is False:
-            return
-        if tree.root.left is not None:
-            if tree.root.left.value() == v:
-                return '.'
-        res = self.__code_in_morse(v, tree.left())
-        if res:
-            return '. ' + res
-        if tree.root.right is not None:
-            if tree.root.right.value() == v:
-                return '-'
-        res = self.__code_in_morse(v, tree.right())
-        if res:
-            return '- ' + res
     def code_in_morse(self, v):
-        return self.__code_in_morse(v)
+        def helper(tree=None):
+            if tree is None:
+                tree = self
+            if tree.root.value() is False:
+                return
+            if tree.root.left is not None:
+                if tree.root.left.value() == v:
+                    return '.'
+            res = helper(tree.left())
+            if res:
+                return '. ' + res
+            if tree.root.right is not None:
+                if tree.root.right.value() == v:
+                    return '-'
+            res = helper(tree.right())
+            if res:
+                return '- ' + res
+        return helper(v)
     def encode(self, message: str):
         res = ''
         for c in message.upper():
             if c in self:
-                res += self.__code_in_morse(c) + '   '
+                res += self.code_in_morse(c) + '   '
             else:
                 res += c + '  '
         return res[:-2]
-    def __invert(self, node=''):
-        if node == '':
-            node = self.root
-        if node is None:
-            return
-        self.__invert(node.left)
-        self.__invert(node.right)
-        node.left, node.right = node.right, node.left
     def invert(self):
-        self.__invert()
+        def helper(node=''):
+            if node == '':
+                node = self.root
+            if node is None:
+                return
+            helper(node.left)
+            helper(node.right)
+            node.left, node.right = node.right, node.left
+        helper()
     def __invert__(self):
-        self.__invert()
+        self.invert()
     def __contains__(self, item):
         if self.root.value() == item:
             return True
@@ -490,19 +490,15 @@ class UndirectedGraph:
                     return False
                 duplicates.append(l[1])
         return True
-    def __reachable(self, node1: Node, node2: Node, nodes: [Node] = None, links: [Link] = None):
-        if nodes is None:
-            nodes = self.__nodes
-        if links is None:
-            links = self.__links
-        if node1 not in nodes or node2 not in nodes:
+    def reachable(self, node1: Node, node2: Node):
+        if node1 not in self.__nodes or node2 not in self.__nodes:
             raise Exception('Unrecognized node(s).')
         if node1 == node2:
             return True
         total, so_far = [node1], [node1]
         while True:
             for m in so_far:
-                for n in [n for n in nodes if Link(m, n) in links and n not in total]:
+                for n in [n for n in self.__nodes if Link(m, n) in self.__links and n not in total]:
                     if n == node2:
                         return True
                     if n not in total:
@@ -510,8 +506,6 @@ class UndirectedGraph:
             if so_far == total:
                 return False
             so_far = total.copy()
-    def reachable(self, node1: Node, node2: Node):
-        return self.__reachable(node1, node2)
     def path_with_length(self, node1: Node, node2: Node, length: int):
         def dfs(node: Node, l: int, stack):
             if not l:
@@ -703,7 +697,7 @@ class UndirectedGraph:
             raise Exception('Unrecognized node(s).')
         distances = Dict(*[(n, len(self.__nodes) - 1) for n in self.__nodes])
         distances[node2] = 0
-        if not self.__reachable(node1, node2, self.__nodes, self.__links):
+        if not self.reachable(node1, node2):
             return float('inf')
         if Link(node1, node2) in self.__links:
             return 1
