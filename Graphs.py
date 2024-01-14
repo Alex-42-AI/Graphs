@@ -1466,17 +1466,13 @@ class DirectedGraph:
             curr = new.copy()
     def strongly_connected(self):
         return self.__strongly_connected()
-    def __reachable(self, node1: Node, node2: Node, nodes: [Node] = None, links: [(Node, Node)] = None):
-        if nodes is None:
-            nodes = self.__nodes
-        if links is None:
-            links = self.__links
-        if node1 not in nodes or node2 not in nodes:
+    def reachable(self, node1: Node, node2: Node):
+        if node1 not in self.__nodes or node2 not in self.__nodes:
             raise Exception('Unrecognized node(s).')
         total, so_far = [node1], [node1]
         while True:
             for m in so_far:
-                for n in [n for n in nodes if (m, n) in links and n not in total]:
+                for n in [n for n in self.__nodes if (m, n) in self.__links and n not in total]:
                     if n == node2:
                         return True
                     if n not in total:
@@ -1484,8 +1480,6 @@ class DirectedGraph:
             if so_far == total:
                 return False
             so_far = total.copy()
-    def reachable(self, node1: Node, node2: Node):
-        return self.__reachable(node1, node2)
     def path_with_length(self, node1: Node, node2: Node, length: int):
         def dfs(node: Node, l: int, stack):
             if node not in self.__nodes or node2 not in self.__nodes:
